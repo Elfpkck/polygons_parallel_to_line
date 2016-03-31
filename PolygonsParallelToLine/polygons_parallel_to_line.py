@@ -137,7 +137,7 @@ class PolygonsParallelToLine:
         self.dlg.show()
         # Run the dialog event loop
         result = self.dlg.exec_()
-        # See if OK was pressed
+        # if OK was pressed
 
         if result:
             # присвоение переменной значения расстояния, введеного в диалоговом окне
@@ -163,25 +163,31 @@ class PolygonsParallelToLine:
             polygonalLayer = self.dlg.comboBox_2.itemData(selectedLayerIndex_2)
             
             progressBar = ShowProgress('PolygonsParallelToLine', 'Обработка данных...', polygonalLayer.featureCount())
+            polygonalLayer.dataProvider().addAttributes([QgsField("rotated", QVariant.Int)])
+
+            polygonalLayer.startEditing() 
             
             for polygon in polygonalLayer.getFeatures():
+                
                 # search nearest neighbor to polygon (from centroid) between lines
                 centroid = polygon.geometry().centroid()
                 near_id = index.nearestNeighbor(centroid.asPoint(),1)
                 near_line = linefeatures[near_id[0]]
                 dist = near_line.geometry().distance(polygon.geometry())
+                
                 # check if polygon closer then distance, chosen in dialog window
                 if dist <= distance:
                     polygonVertexes = polygon.geometry().asPolygon()[0][:-1]
-
                     vertex_to_segment_dict = {}
+                    
                     for vertex in polygonVertexes:
                         vertex_geom = QgsGeometry.fromPoint(vertex)
                         vertex_to_segment = vertex_geom.distance(near_line.geometry())
                         vertex_to_segment_dict[vertex_to_segment] = vertex
+                        
                     # min distance from vertex to segment in current polygon
-                    min_distance = min(vertex_to_segment_dict.keys())                    
-                    nearestVertex = vertex_to_segment_dict[min_distance]
+                    minDistance = min(vertex_to_segment_dict.keys())                    
+                    nearestVertex = vertex_to_segment_dict[minDistance]
                     vertexIndex = polygonVertexes.index(nearestVertex)
 
                     # search for two polygon edges from nearest vertex
@@ -192,41 +198,35 @@ class PolygonsParallelToLine:
                     # if node is last
                     elif vertexIndex == len(polygonVertexes) - 1:
                         line1 = QgsGeometry.fromPolyline([polygonVertexes[-1], polygonVertexes[0]])
-                        #print 'line1', line1
                         line2 = QgsGeometry.fromPolyline([polygonVertexes[-1], polygonVertexes[-2]])
-                        #print 'line2', line2
                     else:
                         line1 = QgsGeometry.fromPolyline([polygonVertexes[vertexIndex], polygonVertexes[vertexIndex+1]])
                         line2 = QgsGeometry.fromPolyline([polygonVertexes[vertexIndex], polygonVertexes[vertexIndex-1]])
                     
-                    line1_azimuth = line1.asPolyline()[0].azimuth(line1.asPolyline()[1])
-                    line2_azimuth = line2.asPolyline()[0].azimuth(line2.asPolyline()[1])    
-                    #print 'line1_azimuth', line1_azimuth
-                    #print 'line2_azimuth', line2_azimuth
+                    line1Azimuth = line1.asPolyline()[0].azimuth(line1.asPolyline()[1])
+                    line2Azimuth = line2.asPolyline()[0].azimuth(line2.asPolyline()[1])    
+                    #print 'line1Azimuth', line1Azimuth
+                    #print 'line2Azimuth', line2Azimuth
                     
                     
                     closestSegment = near_line.geometry().closestSegmentWithContext(nearestVertex)
-                    #print 'closestSegment', closestSegment
-                    # отрезок, индексы:
-                    index_segm_end = closestSegment[-1]
-                    #print 'index_segm_end', index_segm_end
-                    index_segm_start = index_segm_end - 1
-                    #print 'index_segm_start', index_segm_start
+                    indexSegmEnd = closestSegment[-1]
+                    #print 'indexSegmEnd', indexSegmEnd
+                    indexSegmStart = indexSegmEnd - 1
+                    #print 'indexSegmStart', indexSegmStart
                     i = 0
                     for node in near_line.geometry().asPolyline():
-                        #print node
-                        if index_segm_start == i:
-                            segm_start = node
-                            #elif?
-                        elif index_segm_end == i:
-                            segm_end = node
+                        if indexSegmStart == i:
+                            segmStart = node
+                        elif indexSegmEnd == i:
+                            segmEnd = node
                         i += 1
-                    segment_azimuth = segm_start.azimuth(segm_end)
-                    #print segment_azimuth
+                    segmentAzimuth = segmStart.azimuth(segmEnd)
+                    #print segmentAzimuth
 
                     
-                    polygonalLayer.startEditing()
-                    def rotator(segment, line):
+
+                    def preRotation(segment, line):
                         
                         if (segment >= 0 and line >= 0) or (segment <= 0 and line <= 0):
                             delta = segment - line
@@ -254,51 +254,78 @@ class PolygonsParallelToLine:
                                 delta = delta + 180         
                         
                         return delta
+
+
                     
-                    delta_azimuth1 = rotator(segment_azimuth, line1_azimuth)
-                    delta_azimuth2 = rotator(segment_azimuth, line2_azimuth)
+                    deltaAzimuth1 = preRotation(segmentAzimuth, line1Azimuth)
+                    deltaAzimuth2 = preRotation(segmentAzimuth, line2Azimuth)
 
                     
                     # 'delta' вводится, чтобы сопоставить программные значения 'delta_azimuth' с 'angle', 
                     # который вводит пользователь, но вращение полигона производится по 'delta_azimuth'
-                    delta1 = abs(delta_azimuth1)
-                    delta2 = abs(delta_azimuth2)
-                    if abs(delta_azimuth1) > 90:
-                        delta1 = 180 - abs(delta_azimuth1)
-                    if abs(delta_azimuth2) > 90:
-                        delta2 = 180 - abs(delta_azimuth2)
-
+                    delta1 = abs(deltaAzimuth1)
+                    delta2 = abs(deltaAzimuth2)
+                    if abs(deltaAzimuth1) > 90:
+                        delta1 = 180 - abs(deltaAzimuth1)
+                    if abs(deltaAzimuth2) > 90:
+                        delta2 = 180 - abs(deltaAzimuth2)
+                    
+                    # create variable to check if polygon will rotate
+                    rotationCheck = 0  
+                    
                     check = self.dlg.checkBox.checkState()
                     if check == 2:
                         if delta1 <= angle and delta2 <= angle:
                             if line1.geometry().length() >= line2.geometry().length():
-                                polygon.geometry().rotate(delta_azimuth1,centroid.asPoint())
+                                polygon.geometry().rotate(deltaAzimuth1,centroid.asPoint())
+                                rotationCheck = 1
                             elif line1.geometry().length() < line2.geometry().length():
-                                polygon.geometry().rotate(delta_azimuth2,centroid.asPoint())
+                                polygon.geometry().rotate(deltaAzimuth2,centroid.asPoint())
+                                rotationCheck = 1                                
                             elif line1.geometry().length() == line2.geometry().length():
                                 if delta1 > delta2:
-                                    polygon.geometry().rotate(delta_azimuth2,centroid.asPoint())
+                                    polygon.geometry().rotate(deltaAzimuth2,centroid.asPoint())
+                                    rotationCheck = 1
                                 elif delta1 < delta2:
-                                    polygon.geometry().rotate(delta_azimuth1,centroid.asPoint())
+                                    polygon.geometry().rotate(deltaAzimuth1,centroid.asPoint())
+                                    rotationCheck = 1
                                 elif delta1 == delta2:
-                                    polygon.geometry().rotate(delta_azimuth1,centroid.asPoint())
+                                    polygon.geometry().rotate(deltaAzimuth1,centroid.asPoint())
+                                    rotationCheck = 1
                         elif delta1 <= angle:
-                            polygon.geometry().rotate(delta_azimuth1,centroid.asPoint())
+                            polygon.geometry().rotate(deltaAzimuth1,centroid.asPoint())
+                            rotationCheck = 1
                         elif delta2 <= angle:
-                            polygon.geometry().rotate(delta_azimuth2,centroid.asPoint())
+                            polygon.geometry().rotate(deltaAzimuth2,centroid.asPoint())
+                            rotationCheck = 1
                     elif check == 0:
                         if delta1 <= angle and delta2 <= angle:
                             if delta1 > delta2:
-                                polygon.geometry().rotate(delta_azimuth2,centroid.asPoint())
+                                polygon.geometry().rotate(deltaAzimuth2,centroid.asPoint())
+                                rotationCheck = 1
                             elif delta1 < delta2:
-                                polygon.geometry().rotate(delta_azimuth1,centroid.asPoint())
+                                polygon.geometry().rotate(deltaAzimuth1,centroid.asPoint())
+                                rotationCheck = 1
                             elif delta1 == delta2:
-                                polygon.geometry().rotate(delta_azimuth1,centroid.asPoint())
+                                polygon.geometry().rotate(deltaAzimuth1,centroid.asPoint())
+                                rotationCheck = 1
                         elif delta1 <= angle:
-                            polygon.geometry().rotate(delta_azimuth1,centroid.asPoint())
+                            polygon.geometry().rotate(deltaAzimuth1,centroid.asPoint())
+                            rotationCheck = 1
                         elif delta2 <= angle:
-                            polygon.geometry().rotate(delta_azimuth2,centroid.asPoint())
+                            polygon.geometry().rotate(deltaAzimuth2,centroid.asPoint())
+                            rotationCheck = 1
+                
+                    if rotationCheck != 0:
+                        #polygonalLayer.dataProvider().addAttributes([QgsField("rotated", QVariant.Int)])                   
+                        #polygonalLayer.updateFields()
+                        #polygon.setAttribute('rotated',1)
+                        polygon['rotated'] = 1
+                        polygonalLayer.updateFeature(polygon)
+
+
                 polygonalLayer.changeGeometry(polygon.id(),polygon.geometry())
+                
                 progressBar.update(1)
 
             polygonalLayer.triggerRepaint()
