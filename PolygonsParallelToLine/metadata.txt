@@ -7,12 +7,12 @@ version=0.1
 author=Andrey Lekarev
 email=elfpkck@gmail.com
 
-about=This plugin rotates all polygons within chosen distance parallel to the nearest line segment if angle <= chosen angle value. May be useful when working with streets and buildings or with regular grids and buildings. If both angles between polygon edges and line segment <= 'Angle value', rotates by minimal angle value by default (can be change in settings to rotating by longer edge).
+about=This plugin rotates all or only selected polygons within chosen distance (from line to polygon centroid) parallel to the nearest line segment if angle <= chosen angle value. May be useful when working with streets and buildings or with regular grids and buildings. If both angles between polygon edges and line segment <= 'Angle value', rotates by minimal angle value by default (can be change in settings to rotating by longer edge).
 
 tracker=https://github.com/Elfpkck/polygons_parallel_to_line/issues
 repository=https://github.com/Elfpkck/polygons_parallel_to_line
 
-# changelog=
+#changelog=
 
 tags=polygon, line, vector, parallel, rotating
 homepage=https://github.com/Elfpkck/polygons_parallel_to_line
