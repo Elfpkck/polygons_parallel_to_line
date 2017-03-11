@@ -6,12 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>364</width>
-    <height>246</height>
+    <width>428</width>
+    <height>260</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Polygons Parallel to Line</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="0" column="0">
@@ -117,17 +117,6 @@ edges and line segment &lt;= 'Angle value'</string>
     </layout>
    </item>
   </layout>
-  <zorder>buttonBox</zorder>
-  <zorder>layoutWidget</zorder>
-  <zorder>layoutWidget_2</zorder>
-  <zorder>label_2</zorder>
-  <zorder>selectedCheck</zorder>
-  <zorder>layoutWidget_3</zorder>
-  <zorder>layoutWidget_4</zorder>
-  <zorder>checkBox</zorder>
-  <zorder>checkOutput</zorder>
-  <zorder>layoutWidget_5</zorder>
-  <zorder>wAddResult</zorder>
  </widget>
  <resources/>
  <connections>
