@@ -98,3 +98,9 @@ ENV/
 # Rope project settings
 .ropeproject
 
+Будет удалено .gitignore
+Будет удалено .idea/
+Будет удалено __init__.pyc
+Будет удалено polygons_parallel_to_line.pyc
+Будет удалено polygons_parallel_to_line_dialog.pyc
+Будет удалено resources.pyc
