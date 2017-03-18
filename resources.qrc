@@ -1,5 +1,0 @@
-<RCC>
-    <qresource prefix="/plugins/PolygonsParallelToLine" >
-        <file>icon.png</file>
-    </qresource>
-</RCC>
