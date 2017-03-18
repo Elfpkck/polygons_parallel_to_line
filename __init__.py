@@ -4,11 +4,10 @@
  PolygonsParallelToLine
                                  A QGIS plugin
  This plugin rotates polygons parallel to line
-                             -------------------
+                              -------------------
         begin                : 2016-03-10
-        copyright            : (C) 2016 by Andrey Lekarev
+        copyright            : (C) 2016-2017 by Andrey Lekarev
         email                : elfpkck@gmail.com
-        git sha              : $Format:%H$
  ***************************************************************************/
 
 /***************************************************************************
@@ -19,8 +18,11 @@
  *   (at your option) any later version.                                   *
  *                                                                         *
  ***************************************************************************/
- This script initializes the plugin, making it known to QGIS.
 """
+
+__author__ = 'Andrey Lekarev'
+__date__ = '2016-03-10'
+__copyright__ = '(C) 2016-2017 by Andrey Lekarev'
 
 
 # noinspection PyPep8Naming
@@ -31,5 +33,5 @@ def classFactory(iface):  # pylint: disable=invalid-name
     :type iface: QgsInterface
     """
     #
-    from .polygons_parallel_to_line import PolygonsParallelToLine
-    return PolygonsParallelToLine(iface)
+    from .pptl import PolygonsParallelToLinePlugin
+    return PolygonsParallelToLinePlugin()

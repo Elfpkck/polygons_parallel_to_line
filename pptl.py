@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
+
 """
 /***************************************************************************
- PolygonsParallelToLineDialog
+ PolygonsParallelToLine
                                  A QGIS plugin
  This plugin rotates polygons parallel to line
-                             -------------------
-        begin                : 2016-03-10
-        git sha              : $Format:%H$
-        copyright            : (C) 2016 by Andrey Lekarev
+                              -------------------
+        begin                : 2017-03-16
+        copyright            : (C) 2017 by Andrey Lekarev
         email                : elfpkck@gmail.com
  ***************************************************************************/
 
@@ -21,16 +21,31 @@
  ***************************************************************************/
 """
 
+__author__ = 'Andrey Lekarev'
+__date__ = '2016-03-10'
+__copyright__ = '(C) 2016-2017 by Andrey Lekarev'
+
+
 import os
+import sys
+import inspect
 
-from PyQt4 import QtGui, uic
+from processing.core.Processing import Processing
+from pptl_provider import PolygonsParallelToLineProvider
 
-FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'polygons_parallel_to_line_dialog_base.ui'))
+cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
+
+if cmd_folder not in sys.path:
+    sys.path.insert(0, cmd_folder)
 
 
-class PolygonsParallelToLineDialog(QtGui.QDialog, FORM_CLASS):
-    def __init__(self, parent=None):
-        super(PolygonsParallelToLineDialog, self).__init__(parent)
+class PolygonsParallelToLinePlugin:
 
-        self.setupUi(self)
+    def __init__(self):
+        self.provider = PolygonsParallelToLineProvider()
+
+    def initGui(self):
+        Processing.addProvider(self.provider)
+
+    def unload(self):
+        Processing.removeProvider(self.provider)
