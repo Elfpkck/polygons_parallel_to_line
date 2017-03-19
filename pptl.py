@@ -41,8 +41,8 @@ if cmd_folder not in sys.path:
 
 class PolygonsParallelToLinePlugin:
 
-    def __init__(self):
-        self.provider = PolygonsParallelToLineProvider()
+    def __init__(self, iface):
+        self.provider = PolygonsParallelToLineProvider(iface)
 
     def initGui(self):
         Processing.addProvider(self.provider)

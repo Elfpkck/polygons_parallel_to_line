@@ -34,4 +34,4 @@ def classFactory(iface):  # pylint: disable=invalid-name
     """
     #
     from .pptl import PolygonsParallelToLinePlugin
-    return PolygonsParallelToLinePlugin()
+    return PolygonsParallelToLinePlugin(iface)

@@ -35,14 +35,14 @@ class PolygonsParallelToLineProvider(AlgorithmProvider):
 
     MY_SETTING = 'MY_SETTING'
 
-    def __init__(self):
+    def __init__(self, iface):
         AlgorithmProvider.__init__(self)
 
         # Deactivate provider by default
         self.activate = False
 
         # Load algorithms
-        self.alglist = [PolygonsParallelToLineAlgorithm()]
+        self.alglist = [PolygonsParallelToLineAlgorithm(iface)]
         for alg in self.alglist:
             alg.provider = self
 
