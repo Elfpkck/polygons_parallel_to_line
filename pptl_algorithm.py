@@ -230,76 +230,83 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
 
     def _initiateRotation(self):
         self._getNearestLine()
-        dist = self.near_line.geometry().distance(self._polygon.geometry())
+        dist = self.nearLine.geometry().distance(self._polygon.geometry())
         if not self._distance or dist <= self._distance:
             self._simpleOrMultiGeometry()
 
     def _getNearestLine(self):
-        self.centroid = self._polygon.geometry().centroid()
-        near_id = self.index.nearestNeighbor(self.centroid.asPoint(), 1)
+        self._centroid = self._polygon.geometry().centroid()
+        nearId = self.index.nearestNeighbor(self._centroid.asPoint(), 1)
         for line in self._lineLayer.getFeatures():
-            if line.id() == near_id[0]:
-                self.near_line = line
+            if line.id() == nearId[0]:
+                self.nearLine = line
 
     def _simpleOrMultiGeometry(self):
         if self._polygon.geometry().isMultipart():
-            for part in self._polygon.geometry().asMultiPolygon():
-                self._nearestVertex(part[0])
+            dct = {}
+            mPolygonVertexes = self._polygon.geometry().asMultiPolygon()
+            for i, part in enumerate(mPolygonVertexes):
+                minDistance, vertexIndex = self._getNearestVertex(part[0])
+                dct[(i, vertexIndex)] = minDistance
+            i, vertexIndex = min(dct, key=dct.get)
+            self._nearestEdges(mPolygonVertexes[i][0], vertexIndex)
         else:
-            self._nearestVertex(self._polygon.geometry().asPolygon()[0])
+            polygonVertexes = self._polygon.geometry().asPolygon()[0]
+            vertexIndex = self._getNearestVertex(polygonVertexes)[1]
+            self._nearestEdges(polygonVertexes, vertexIndex)
 
-    def _nearestVertex(self, polygonVertexes):
-        vertex_to_segment_dict = {}
+    def _getNearestVertex(self, polygonVertexes):
+        vertexToSegmentDict = {}
         for vertex in polygonVertexes[:-1]:
-            vertex_geom = QgsGeometry.fromPoint(vertex)
-            vertex_to_segment = vertex_geom.distance(self.near_line.geometry())
-            vertex_to_segment_dict[vertex_to_segment] = vertex
+            vertexGeom = QgsGeometry.fromPoint(vertex)
+            vertexToSegment = vertexGeom.distance(self.nearLine.geometry())
+            vertexToSegmentDict[vertexToSegment] = vertex
 
-        minDistance = min(vertex_to_segment_dict.keys())
-        self.nearestVertex = vertex_to_segment_dict[minDistance]
-        vertexIndex = polygonVertexes.index(self.nearestVertex)
-        self._nearestEdges(polygonVertexes, vertexIndex)
+        minDistance = min(vertexToSegmentDict.keys())
+        self._nearestVertex = vertexToSegmentDict[minDistance]
+        vertexIndex = polygonVertexes.index(self._nearestVertex)
+        return minDistance, vertexIndex
 
     def _nearestEdges(self, polygonVertexes, vertexIndex):
         # if vertex is first
         if vertexIndex == 0:
-            self.line1 = QgsGeometry.fromPolyline(
+            self._line1 = QgsGeometry.fromPolyline(
                 [polygonVertexes[0], polygonVertexes[1]])
-            self.line2 = QgsGeometry.fromPolyline(
+            self._line2 = QgsGeometry.fromPolyline(
                 [polygonVertexes[0], polygonVertexes[-1]])
 
         # if vertex is last
         elif vertexIndex == len(polygonVertexes) - 1:
-            self.line1 = QgsGeometry.fromPolyline(
+            self._line1 = QgsGeometry.fromPolyline(
                 [polygonVertexes[-1], polygonVertexes[0]])
-            self.line2 = QgsGeometry.fromPolyline(
+            self._line2 = QgsGeometry.fromPolyline(
                 [polygonVertexes[-1], polygonVertexes[-2]])
         else:
-            self.line1 = QgsGeometry.fromPolyline(
+            self._line1 = QgsGeometry.fromPolyline(
                 [polygonVertexes[vertexIndex],
                  polygonVertexes[vertexIndex + 1]]
             )
-            self.line2 = QgsGeometry.fromPolyline(
+            self._line2 = QgsGeometry.fromPolyline(
                 [polygonVertexes[vertexIndex],
                  polygonVertexes[vertexIndex - 1]]
             )
 
-        line1Azimuth = self.line1.asPolyline()[0].azimuth(
-            self.line1.asPolyline()[1]
+        line1Azimuth = self._line1.asPolyline()[0].azimuth(
+            self._line1.asPolyline()[1]
         )
-        line2Azimuth = self.line2.asPolyline()[0].azimuth(
-            self.line2.asPolyline()[1]
+        line2Azimuth = self._line2.asPolyline()[0].azimuth(
+            self._line2.asPolyline()[1]
         )
         self._segmentAzimuth(line1Azimuth, line2Azimuth)
 
     def _segmentAzimuth(self, line1Azimuth, line2Azimuth):
-        closestSegment = self.near_line.geometry().closestSegmentWithContext(
-            self.nearestVertex
+        closestSegment = self.nearLine.geometry().closestSegmentWithContext(
+            self._nearestVertex
         )
         indexSegmEnd = closestSegment[-1]
         indexSegmStart = indexSegmEnd - 1
 
-        for i, node in enumerate(self.near_line.geometry().asPolyline()):
+        for i, node in enumerate(self.nearLine.geometry().asPolyline()):
             if indexSegmStart == i:
                 segmStart = node
             elif indexSegmEnd == i:
@@ -353,38 +360,38 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
     def _needRefactor(self, deltaAzimuth1, deltaAzimuth2, delta1, delta2):
         if self._byLongest:
             if delta1 <= self._angle and delta2 <= self._angle:
-                if self.line1.geometry().length() >= self.line2.geometry().length():
+                if self._line1.geometry().length() >= self._line2.geometry().length():
                     self._polygon.geometry().rotate(deltaAzimuth1,
-                                                    self.centroid.asPoint())
-                elif self.line1.geometry().length() < self.line2.geometry().length():
+                                                    self._centroid.asPoint())
+                elif self._line1.geometry().length() < self._line2.geometry().length():
                     self._polygon.geometry().rotate(deltaAzimuth2,
-                                                    self.centroid.asPoint())
-                elif self.line1.geometry().length() == self.line2.geometry().length():
+                                                    self._centroid.asPoint())
+                elif self._line1.geometry().length() == self._line2.geometry().length():
                     if delta1 > delta2:
                         self._polygon.geometry().rotate(deltaAzimuth2,
-                                                        self.centroid.asPoint())
+                                                        self._centroid.asPoint())
                     elif delta1 < delta2:
                         self._polygon.geometry().rotate(deltaAzimuth1,
-                                                        self.centroid.asPoint())
+                                                        self._centroid.asPoint())
                     elif delta1 == delta2:
                         self._polygon.geometry().rotate(deltaAzimuth1,
-                                                        self.centroid.asPoint())
+                                                        self._centroid.asPoint())
             elif delta1 <= self._angle:
-                self._polygon.geometry().rotate(deltaAzimuth1, self.centroid.asPoint())
+                self._polygon.geometry().rotate(deltaAzimuth1, self._centroid.asPoint())
             elif delta2 <= self._angle:
-                self._polygon.geometry().rotate(deltaAzimuth2, self.centroid.asPoint())
+                self._polygon.geometry().rotate(deltaAzimuth2, self._centroid.asPoint())
         else:
             if delta1 <= self._angle and delta2 <= self._angle:
                 if delta1 > delta2:
                     self._polygon.geometry().rotate(deltaAzimuth2,
-                                                    self.centroid.asPoint())
+                                                    self._centroid.asPoint())
                 elif delta1 < delta2:
                     self._polygon.geometry().rotate(deltaAzimuth1,
-                                                    self.centroid.asPoint())
+                                                    self._centroid.asPoint())
                 elif delta1 == delta2:
                     self._polygon.geometry().rotate(deltaAzimuth1,
-                                                    self.centroid.asPoint())
+                                                    self._centroid.asPoint())
             elif delta1 <= self._angle:
-                self._polygon.geometry().rotate(deltaAzimuth1, self.centroid.asPoint())
+                self._polygon.geometry().rotate(deltaAzimuth1, self._centroid.asPoint())
             elif delta2 <= self._angle:
-                self._polygon.geometry().rotate(deltaAzimuth2, self.centroid.asPoint())
+                self._polygon.geometry().rotate(deltaAzimuth2, self._centroid.asPoint())
