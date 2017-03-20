@@ -29,15 +29,14 @@ __copyright__ = '(C) 2016-2017 by Andrey Lekarev'
 from PyQt4.QtCore import QSettings
 from PyQt4.QtGui import QProgressBar
 
-from qgis.core import (QgsVectorFileWriter, QgsSpatialIndex, QgsGeometry,
-                       QgsMapLayerRegistry)
+from qgis.core import QgsVectorFileWriter, QgsSpatialIndex, QgsGeometry
 from qgis.gui import QgsMessageBar
 
 from processing.core.GeoAlgorithm import GeoAlgorithm
 from processing.core.parameters import (ParameterVector, ParameterBoolean,
                                         ParameterNumber)
 from processing.core.outputs import OutputVector
-from processing.tools import dataobjects, vector
+from processing.tools import dataobjects
 
 
 class ShowProgress():
@@ -72,6 +71,7 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
     LINE_LAYER = 'LINE_LAYER'
     POLYGON_LAYER = 'POLYGON_LAYER'
     SELECTED = 'SELECTED'
+    WRITE_SELECTED = 'WRITE_SELECTED'
     LONGEST = 'LONGEST'
     DISTANCE = 'DISTANCE'
     ANGLE = 'ANGLE'
@@ -114,6 +114,12 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
         )
         self.addParameter(
             ParameterBoolean(
+                self.WRITE_SELECTED,
+                self.tr('Write only selected'),
+            )
+        )
+        self.addParameter(
+            ParameterBoolean(
                 self.LONGEST,
                 self.tr("Rotate by longest edge if both angles between "
                         "_polygon edges and line segment <= 'Angle value'")
@@ -140,22 +146,15 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
             self._polygonLayerName
         )
         self._createLineSpatialIndex()
-
-        # polygons = self._getSelected() if self._isSelected else self._getAll()
-        # if polygons:
-        #     for _polygon in polygons:
-        #         self._polygon = _polygon
-        #         # if not _polygon.geometry().isMultipart():
-        #         self._rotate()
-
-        # self._getAll()
-        self._rotateAndWrite(self._setupWriter())
+        if self._validatePolygonLayer():
+            self._rotateAndWriteSelectedOrAll(self._getWriter())
 
 
     def _getInputValues(self):
         self._lineLayerName = self.getParameterValue(self.LINE_LAYER)
         self._polygonLayerName = self.getParameterValue(self.POLYGON_LAYER)
         self._isSelected = self.getParameterValue(self.SELECTED)
+        self._isWriteSelected = self.getParameterValue(self.WRITE_SELECTED)
         self._byLongest = self.getParameterValue(self.LONGEST)
         self._distance = self.getParameterValue(self.DISTANCE)
         self._angle = self.getParameterValue(self.ANGLE)
@@ -166,74 +165,74 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
         for line in self._lineLayer.getFeatures():
             self.index.insertFeature(line)
 
-    # def _getSelected(self):
-    #     polygonsNumber = self._polygonLayer.selectedFeatureCount()
-    #     if polygonsNumber:
-    #         self._createProgressBar(polygonsNumber)
-    #         return self._polygonLayer.selectedFeatures()
-    #     else:
-    #         self._showMsg(self.tr('You have chosen "Rotate only selected '
-    #                               'polygons" but there are no selected'))
+    def _validatePolygonLayer(self):
+        output = False
+        if self._polygonLayer.featureCount():
+            output = True
+        else:
+            self._showMsg(self.tr("Layer does not have any polygons"))
+
+        if self._isSelected:
+            if self._polygonLayer.selectedFeatureCount():
+                output = True
+            else:
+                self._showMsg(self.tr(
+                    'You have chosen "Rotate only selected polygons" but '
+                    'there are no selected'
+                ))
+                output = False
+        return output
 
     def _showMsg(self, message):
         self._iface.messageBar().pushMessage("Error", message,
                                              level=QgsMessageBar.CRITICAL)
 
-    # def _getAll(self):
-    #     polygonsNumber = self._polygonLayer.featureCount()
-    #     if polygonsNumber:
-    #         self._createProgressBar(polygonsNumber)
-    #         return self._polygonLayer.getFeatures()
-    #     else:
-    #         self._showMsg(self.tr("Layer does not have any polygons"))
+    def _getWriter(self):
+        settings = QSettings()
+        systemEncoding = settings.value('/UI/encoding', 'System')
+        provider = self._polygonLayer.dataProvider()
+        return QgsVectorFileWriter(
+            self._outputLayer, systemEncoding, provider.fields(),
+            provider.geometryType(), provider.crs()
+        )
+
+    def _rotateAndWriteSelectedOrAll(self, writer):
+        if self._isSelected:
+            self._rotateAndWriteSeleced(writer)
+        else:
+            self._createProgressBar(self._polygonLayer.featureCount())
+            polygons = self._polygonLayer.getFeatures()
+            for polygon in polygons:
+                self._rotateAndWritePolygon(polygon, writer)
+
+    def _rotateAndWriteSeleced(self, writer):
+        self._createProgressBar(self._polygonLayer.selectedFeatureCount())
+        if self._isWriteSelected:
+            polygons = self._polygonLayer.selectedFeatures()
+            for polygon in polygons:
+                self._rotateAndWritePolygon(polygon, writer)
+        else:
+            for p in self._polygonLayer.getFeatures():
+                if p.id() in self._polygonLayer.selectedFeaturesIds():
+                    self._rotateAndWritePolygon(p, writer)
+                else:
+                    writer.addFeature(p)
 
     def _createProgressBar(self, items):
         self._progressBar = ShowProgress(self._iface, 'PolygonsParallelToLine',
                                          self.tr('Data processing...'), items)
 
-    def _setupWriter(self):
-        settings = QSettings()
-        systemEncoding = settings.value('/UI/encoding', 'System')
-        provider = self._polygonLayer.dataProvider()
-        return QgsVectorFileWriter(self._outputLayer, systemEncoding,
-                                     provider.fields(),
-                                     provider.geometryType(), provider.crs())
-
-
-    def _rotateAndWrite(self, writer):
-        for lyr in QgsMapLayerRegistry.instance().mapLayers().values():
-            if lyr.source() == self._polygonLayerName:
-                allPolygons = lyr
-                break
-
-        if self._isSelected:
-            selectedIDs = [x.id() for x in vector.features(self._polygonLayer)]
-            print "selectedPolygons", selectedIDs
-            for polygon in allPolygons.getFeatures():
-                print polygon.id()
-                if polygon.id() in selectedIDs:
-                    self._polygon = polygon
-                    self._initiateRotation()
-                    writer.addFeature(self._polygon)
-                    # self._progressBar.update(1)
-                else:
-                    writer.addFeature(polygon)
-
-    # def _rotateAndWrite(self, writer):
-    #     polygons = vector.features(self._polygonLayer)
-    #     for polygon in polygons:
-    #         print polygon
-    #         self._polygon = polygon
-    #         self._initiateRotation()
-    #         writer.addFeature(self._polygon)
-    #         self._progressBar.update(1)
+    def _rotateAndWritePolygon(self, polygon, writer):
+        self._polygon = polygon
+        self._initiateRotation()
+        writer.addFeature(self._polygon)
+        self._progressBar.update(1)
 
     def _initiateRotation(self):
         self._getNearestLine()
         dist = self.near_line.geometry().distance(self._polygon.geometry())
         if not self._distance or dist <= self._distance:
             self._simpleOrMultiGeometry()
-
 
     def _getNearestLine(self):
         self.centroid = self._polygon.geometry().centroid()
