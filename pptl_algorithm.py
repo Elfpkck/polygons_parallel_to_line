@@ -21,48 +21,25 @@
  ***************************************************************************/
 """
 
+from __future__ import division
+
+
 __author__ = 'Andrey Lekarev'
 __date__ = '2016-03-10'
 __copyright__ = '(C) 2016-2017 by Andrey Lekarev'
 
 
 from PyQt4.QtCore import QSettings
-from PyQt4.QtGui import QProgressBar
 
 from qgis.core import QgsVectorFileWriter, QgsSpatialIndex, QgsGeometry
-from qgis.gui import QgsMessageBar
 
 from processing.core.GeoAlgorithm import GeoAlgorithm
+from processing.core.GeoAlgorithmExecutionException import (
+    GeoAlgorithmExecutionException)
 from processing.core.parameters import (ParameterVector, ParameterBoolean,
                                         ParameterNumber)
 from processing.core.outputs import OutputVector
 from processing.tools import dataobjects
-
-
-class ShowProgress():
-
-    def __init__(self, iface, title, message, items):
-        """
-        Informs user about progress via progress bar at QGIS messageBar
-
-        :param iface: a QGIS interface instance
-        :param title: str bar title
-        :param message: str bar message
-        :param items: int number of items in bar
-        """
-
-        iface.messageBar().clearWidgets()
-        progressMessageBar = iface.messageBar().createMessage(title, message)
-        self.progress = QProgressBar(progressMessageBar)
-        self.progress.setMaximum(items)
-        progressMessageBar.layout().addWidget(self.progress)
-        iface.messageBar().pushWidget(progressMessageBar)
-        self.pr = 0
-        self.progress.setValue(self.pr)
-
-    def update(self, value):
-        self.pr += value
-        self.progress.setValue(self.pr)
 
 
 class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
@@ -75,10 +52,6 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
     LONGEST = 'LONGEST'
     DISTANCE = 'DISTANCE'
     ANGLE = 'ANGLE'
-
-    def __init__(self, iface):
-        GeoAlgorithm.__init__(self)
-        self._iface = iface
 
     def defineCharacteristics(self):
         # The name that the user will see in the toolbox
@@ -102,7 +75,7 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
         self.addParameter(
             ParameterVector(
                 self.POLYGON_LAYER,
-                self.tr('Input _polygon layer'),
+                self.tr('Input polygon layer'),
                 [ParameterVector.VECTOR_TYPE_POLYGON]
             )
         )
@@ -140,15 +113,16 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
         )
 
     def processAlgorithm(self, progress):
+        self._operationCounter = 0
+        self._progress = progress
         self._getInputValues()
         self._lineLayer = dataobjects.getObjectFromUri(self._lineLayerName)
         self._polygonLayer = dataobjects.getObjectFromUri(
             self._polygonLayerName
         )
         self._createLineSpatialIndex()
-        if self._validatePolygonLayer():
-            self._rotateAndWriteSelectedOrAll(self._getWriter())
-
+        self._validatePolygonLayer()
+        self._rotateAndWriteSelectedOrAll(self._getWriter())
 
     def _getInputValues(self):
         self._lineLayerName = self.getParameterValue(self.LINE_LAYER)
@@ -161,31 +135,23 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
         self._outputLayer = self.getOutputValue(self.OUTPUT_LAYER)
 
     def _createLineSpatialIndex(self):
-        self.index = QgsSpatialIndex()
+        self._index = QgsSpatialIndex()
         for line in self._lineLayer.getFeatures():
-            self.index.insertFeature(line)
+            self._index.insertFeature(line)
 
     def _validatePolygonLayer(self):
-        output = False
-        if self._polygonLayer.featureCount():
-            output = True
-        else:
-            self._showMsg(self.tr("Layer does not have any polygons"))
-
+        self._totalNumber = self._polygonLayer.featureCount()
+        if not self._totalNumber:
+            raise GeoAlgorithmExecutionException(
+                self.tr("Layer does not have any polygons")
+            )
         if self._isSelected:
-            if self._polygonLayer.selectedFeatureCount():
-                output = True
-            else:
-                self._showMsg(self.tr(
-                    'You have chosen "Rotate only selected polygons" but '
-                    'there are no selected'
-                ))
-                output = False
-        return output
-
-    def _showMsg(self, message):
-        self._iface.messageBar().pushMessage("Error", message,
-                                             level=QgsMessageBar.CRITICAL)
+            self._totalNumber = self._polygonLayer.selectedFeatureCount()
+            if not self._totalNumber:
+                raise GeoAlgorithmExecutionException(
+                    self.tr('You have chosen "Rotate only selected polygons" '
+                            'but there are no selected')
+                )
 
     def _getWriter(self):
         settings = QSettings()
@@ -200,13 +166,11 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
         if self._isSelected:
             self._rotateAndWriteSeleced(writer)
         else:
-            self._createProgressBar(self._polygonLayer.featureCount())
             polygons = self._polygonLayer.getFeatures()
             for polygon in polygons:
                 self._rotateAndWritePolygon(polygon, writer)
 
     def _rotateAndWriteSeleced(self, writer):
-        self._createProgressBar(self._polygonLayer.selectedFeatureCount())
         if self._isWriteSelected:
             polygons = self._polygonLayer.selectedFeatures()
             for polygon in polygons:
@@ -218,28 +182,27 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
                 else:
                     writer.addFeature(p)
 
-    def _createProgressBar(self, items):
-        self._progressBar = ShowProgress(self._iface, 'PolygonsParallelToLine',
-                                         self.tr('Data processing...'), items)
-
     def _rotateAndWritePolygon(self, polygon, writer):
         self._polygon = polygon
         self._initiateRotation()
         writer.addFeature(self._polygon)
-        self._progressBar.update(1)
+
+        self._operationCounter += 1
+        currentPercentage = self._operationCounter / self._totalNumber * 100
+        self._progress.setPercentage(round(currentPercentage))
 
     def _initiateRotation(self):
         self._getNearestLine()
-        dist = self.nearLine.geometry().distance(self._polygon.geometry())
+        dist = self._nearLine.geometry().distance(self._polygon.geometry())
         if not self._distance or dist <= self._distance:
             self._simpleOrMultiGeometry()
 
     def _getNearestLine(self):
         self._centroid = self._polygon.geometry().centroid()
-        nearId = self.index.nearestNeighbor(self._centroid.asPoint(), 1)
+        nearId = self._index.nearestNeighbor(self._centroid.asPoint(), 1)
         for line in self._lineLayer.getFeatures():
             if line.id() == nearId[0]:
-                self.nearLine = line
+                self._nearLine = line
 
     def _simpleOrMultiGeometry(self):
         if self._polygon.geometry().isMultipart():
@@ -259,7 +222,7 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
         vertexToSegmentDict = {}
         for vertex in polygonVertexes[:-1]:
             vertexGeom = QgsGeometry.fromPoint(vertex)
-            vertexToSegment = vertexGeom.distance(self.nearLine.geometry())
+            vertexToSegment = vertexGeom.distance(self._nearLine.geometry())
             vertexToSegmentDict[vertexToSegment] = vertex
 
         minDistance = min(vertexToSegmentDict.keys())
@@ -300,17 +263,12 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
         self._segmentAzimuth(line1Azimuth, line2Azimuth)
 
     def _segmentAzimuth(self, line1Azimuth, line2Azimuth):
-        closestSegment = self.nearLine.geometry().closestSegmentWithContext(
+        closestSegment = self._nearLine.geometry().closestSegmentWithContext(
             self._nearestVertex
         )
         indexSegmEnd = closestSegment[-1]
-        indexSegmStart = indexSegmEnd - 1
-
-        for i, node in enumerate(self.nearLine.geometry().asPolyline()):
-            if indexSegmStart == i:
-                segmStart = node
-            elif indexSegmEnd == i:
-                segmEnd = node
+        segmEnd = self._nearLine.geometry().asPolyline()[indexSegmEnd]
+        segmStart = self._nearLine.geometry().asPolyline()[indexSegmEnd - 1]
         segmentAzimuth = segmStart.azimuth(segmEnd)
 
         deltaAzimuth1 = self._preRotation(segmentAzimuth, line1Azimuth)
