@@ -29,9 +29,10 @@ __date__ = '2016-03-10'
 __copyright__ = '(C) 2016-2017 by Andrey Lekarev'
 
 
-from PyQt4.QtCore import QSettings
+from PyQt4.QtCore import QSettings, QVariant
 
-from qgis.core import QgsVectorFileWriter, QgsSpatialIndex, QgsGeometry
+from qgis.core import (QgsVectorFileWriter, QgsSpatialIndex, QgsGeometry,
+                       QgsField)
 
 from processing.core.GeoAlgorithm import GeoAlgorithm
 from processing.core.GeoAlgorithmExecutionException import (
@@ -52,6 +53,7 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
     LONGEST = 'LONGEST'
     DISTANCE = 'DISTANCE'
     ANGLE = 'ANGLE'
+    COLUMN_NAME = '_rotated'
 
     def defineCharacteristics(self):
         # The name that the user will see in the toolbox
@@ -122,7 +124,9 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
         )
         self._createLineSpatialIndex()
         self._validatePolygonLayer()
+        self._addAttribute()
         self._rotateAndWriteSelectedOrAll(self._getWriter())
+        self._deleteAttribute()
 
     def _getInputValues(self):
         self._lineLayerName = self.getParameterValue(self.LINE_LAYER)
@@ -152,6 +156,25 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
                     self.tr('You have chosen "Rotate only selected polygons" '
                             'but there are no selected')
                 )
+
+    def _addAttribute(self):
+        for attr in self._polygonLayer.pendingFields():
+            if self.COLUMN_NAME == attr.name():
+                if attr.isNumeric():
+                    break
+                else:
+                    self._deleteAttribute()
+        else:
+            self._polygonLayer.dataProvider().addAttributes(
+                [QgsField(self.COLUMN_NAME, QVariant.Int)]
+            )
+            self._polygonLayer.updateFields()
+
+    def _deleteAttribute(self):
+        for i, attr in enumerate(self._polygonLayer.pendingFields()):
+            if attr.name() == self.COLUMN_NAME:
+                self._polygonLayer.dataProvider().deleteAttributes([i])
+                self._polygonLayer.updateFields()
 
     def _getWriter(self):
         settings = QSettings()
@@ -327,6 +350,8 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
         else:
             self._othersRotations(delta1, delta2)
 
+        self._markAsRotated()
+
     def _rotateByLongest(self, delta1, delta2):
         if delta1 <= self._angle and delta2 <= self._angle:
             length1 = self._line1.geometry().length()
@@ -356,3 +381,7 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
             self._p.geometry().rotate(self._dltAz2, self._center.asPoint())
         else:
             self._rotationCheck = False
+
+    def _markAsRotated(self):
+        if self._rotationCheck:
+            self._p[self.COLUMN_NAME] = 1
