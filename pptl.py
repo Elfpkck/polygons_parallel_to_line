@@ -29,7 +29,7 @@ __copyright__ = '(C) 2016-2017 by Andrey Lekarev'
 __revision__ = '$Format:%H$'
 
 
-import os
+import os.path
 import sys
 import inspect
 

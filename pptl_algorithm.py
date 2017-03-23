@@ -31,10 +31,11 @@ __copyright__ = '(C) 2016-2017 by Andrey Lekarev'
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = '$Format:%H$'
 
-import os
+import os.path
 
 from PyQt4.QtCore import (QSettings, QVariant, QTranslator, qVersion,
                           QCoreApplication)
+from PyQt4.QtGui import QIcon
 
 from qgis.core import (QgsVectorFileWriter, QgsSpatialIndex, QgsGeometry,
                        QgsField)
@@ -77,6 +78,10 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
 
             if qVersion() > '4.3.3':
                 QCoreApplication.installTranslator(self.translator)
+
+    def getIcon(self):
+        path = os.path.join(os.path.dirname(__file__), "icons", "icon.png")
+        return QIcon(path)
 
     def tr(self, message):
         className = self.__class__.__name__

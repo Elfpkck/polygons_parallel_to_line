@@ -29,6 +29,10 @@ __copyright__ = '(C) 2016-2017 by Andrey Lekarev'
 __revision__ = '$Format:%H$'
 
 
+import os.path
+
+from PyQt4.QtGui import QIcon
+
 from processing.core.AlgorithmProvider import AlgorithmProvider
 from processing.core.ProcessingConfig import Setting, ProcessingConfig
 from pptl_algorithm import PolygonsParallelToLineAlgorithm
@@ -84,7 +88,9 @@ class PolygonsParallelToLineProvider(AlgorithmProvider):
     def getIcon(self):
         """We return the default icon.
         """
-        return AlgorithmProvider.getIcon(self)
+        # return AlgorithmProvider.getIcon(self)
+        path = os.path.join(os.path.dirname(__file__), "icons", "icon.png")
+        return QIcon(path)
 
     def _loadAlgorithms(self):
         """Here we fill the list of algorithms in self.algs.

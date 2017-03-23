@@ -19,7 +19,7 @@ tags=polygon, line, vector, parallel, rotating
 
 homepage=https://github.com/Elfpkck/polygons_parallel_to_line
 category=Analysis
-icon=icon.png
+icon=icons/icon.png
 
 experimental=True
 deprecated=False
