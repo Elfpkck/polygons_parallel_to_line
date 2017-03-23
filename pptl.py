@@ -6,8 +6,8 @@
                                  A QGIS plugin
  This plugin rotates polygons parallel to line
                               -------------------
-        begin                : 2017-03-16
-        copyright            : (C) 2017 by Andrey Lekarev
+        begin                : 2016-03-10
+        copyright            : (C) 2016-2017 by Andrey Lekarev
         email                : elfpkck@gmail.com
  ***************************************************************************/
 
@@ -24,6 +24,9 @@
 __author__ = 'Andrey Lekarev'
 __date__ = '2016-03-10'
 __copyright__ = '(C) 2016-2017 by Andrey Lekarev'
+
+# This will get replaced with a git SHA1 when you do a git archive
+__revision__ = '$Format:%H$'
 
 
 import os

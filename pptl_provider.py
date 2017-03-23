@@ -25,6 +25,9 @@ __author__ = 'Andrey Lekarev'
 __date__ = '2016-03-10'
 __copyright__ = '(C) 2016-2017 by Andrey Lekarev'
 
+# This will get replaced with a git SHA1 when you do a git archive
+__revision__ = '$Format:%H$'
+
 
 from processing.core.AlgorithmProvider import AlgorithmProvider
 from processing.core.ProcessingConfig import Setting, ProcessingConfig
@@ -50,9 +53,6 @@ class PolygonsParallelToLineProvider(AlgorithmProvider):
         """In this method we add settings needed to configure our
         provider.
 
-        Do not forget to call the parent method, since it takes care
-        or automatically adding a setting for activating or
-        deactivating the algorithms in the provider.
         """
         AlgorithmProvider.initializeSettings(self)
         ProcessingConfig.addSetting(Setting('Example algorithms',
@@ -62,6 +62,7 @@ class PolygonsParallelToLineProvider(AlgorithmProvider):
     def unload(self):
         """Setting should be removed here, so they do not appear anymore
         when the plugin is unloaded.
+
         """
         AlgorithmProvider.unload(self)
         ProcessingConfig.removeSetting(
@@ -73,12 +74,12 @@ class PolygonsParallelToLineProvider(AlgorithmProvider):
         It is also used to create the command line name of all the
         algorithms from this provider.
         """
-        return ''
+        return 'Polygons parallel to line'
 
     def getDescription(self):
         """This is the provired full name.
         """
-        return ''
+        return 'Polygons parallel to line'
 
     def getIcon(self):
         """We return the default icon.

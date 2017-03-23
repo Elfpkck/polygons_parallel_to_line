@@ -6,8 +6,8 @@
                                  A QGIS plugin
  This plugin rotates polygons parallel to line
                               -------------------
-        begin                : 2017-03-16
-        copyright            : (C) 2017 by Andrey Lekarev
+        begin                : 2016-03-10
+        copyright            : (C) 2016-2017 by Andrey Lekarev
         email                : elfpkck@gmail.com
  ***************************************************************************/
 
@@ -28,8 +28,13 @@ __author__ = 'Andrey Lekarev'
 __date__ = '2016-03-10'
 __copyright__ = '(C) 2016-2017 by Andrey Lekarev'
 
+# This will get replaced with a git SHA1 when you do a git archive
+__revision__ = '$Format:%H$'
 
-from PyQt4.QtCore import QSettings, QVariant
+import os
+
+from PyQt4.QtCore import (QSettings, QVariant, QTranslator, qVersion,
+                          QCoreApplication)
 
 from qgis.core import (QgsVectorFileWriter, QgsSpatialIndex, QgsGeometry,
                        QgsField)
@@ -55,29 +60,51 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
     ANGLE = 'ANGLE'
     COLUMN_NAME = '_rotated'
 
+    def __init__(self):
+        self._translateUi()
+        GeoAlgorithm.__init__(self)
+
+    def _translateUi(self):
+        locale = QSettings().value('locale/userLocale')[0:2]
+        locale_path = os.path.join(
+            os.path.dirname(__file__),
+            'i18n',
+            'pptl_{}.qm'.format(locale)
+        )
+        if os.path.exists(locale_path):
+            self.translator = QTranslator()
+            self.translator.load(locale_path)
+
+            if qVersion() > '4.3.3':
+                QCoreApplication.installTranslator(self.translator)
+
+    def tr(self, message):
+        className = self.__class__.__name__
+        return QCoreApplication.translate(className, message)
+
     def defineCharacteristics(self):
         # The name that the user will see in the toolbox
-        self.name = 'Polygons parallel to line'
+        self.name = self.tr('Polygons parallel to line')
 
         # The branch of the toolbox under which the algorithm will appear
-        self.group = 'Algorithms for vector layers'
+        self.group = self.tr('Algorithms for vector layers')
 
         self.addOutput(
             OutputVector(
                 self.OUTPUT_LAYER,
-                self.tr('Output layer with rotated polygons')
+                self.tr('Select output layer with rotated polygons')
             )
         )
         self.addParameter(
             ParameterVector(
                 self.LINE_LAYER,
-                self.tr('Input line layer')
+                self.tr('Select line layer')
             )
         )
         self.addParameter(
             ParameterVector(
                 self.POLYGON_LAYER,
-                self.tr('Input polygon layer'),
+                self.tr('Select polygon layer'),
                 [ParameterVector.VECTOR_TYPE_POLYGON]
             )
         )
@@ -90,14 +117,14 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
         self.addParameter(
             ParameterBoolean(
                 self.WRITE_SELECTED,
-                self.tr('Write only selected'),
+                self.tr('Save only selected'),
             )
         )
         self.addParameter(
             ParameterBoolean(
                 self.LONGEST,
                 self.tr("Rotate by longest edge if both angles between "
-                        "_polygon edges and line segment <= 'Angle value'")
+                        "polygon edges and line segment <= 'Angle value'")
             )
         )
         self.addParameter(
