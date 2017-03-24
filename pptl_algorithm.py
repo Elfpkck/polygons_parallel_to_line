@@ -57,6 +57,7 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
     SELECTED = 'SELECTED'
     WRITE_SELECTED = 'WRITE_SELECTED'
     LONGEST = 'LONGEST'
+    MULTI = 'MULTI'
     DISTANCE = 'DISTANCE'
     ANGLE = 'ANGLE'
     COLUMN_NAME = '_rotated'
@@ -97,7 +98,7 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
         self.addOutput(
             OutputVector(
                 self.OUTPUT_LAYER,
-                self.tr('Select output layer with rotated polygons')
+                'Output layer with rotated polygons'
             )
         )
         self.addParameter(
@@ -130,6 +131,12 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
                 self.LONGEST,
                 self.tr("Rotate by longest edge if both angles between "
                         "polygon edges and line segment <= 'Angle value'")
+            )
+        )
+        self.addParameter(
+            ParameterBoolean(
+                self.MULTI,
+                self.tr("Do not rotate multipolygons")
             )
         )
         self.addParameter(
@@ -166,6 +173,7 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
         self._isSelected = self.getParameterValue(self.SELECTED)
         self._isWriteSelected = self.getParameterValue(self.WRITE_SELECTED)
         self._byLongest = self.getParameterValue(self.LONGEST)
+        self._multi = self.getParameterValue(self.MULTI)
         self._distance = self.getParameterValue(self.DISTANCE)
         self._angle = self.getParameterValue(self.ANGLE)
         self._outputLayer = self.getOutputValue(self.OUTPUT_LAYER)
@@ -262,7 +270,8 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
                 self._nearLine = line
 
     def _simpleOrMultiGeometry(self):
-        if self._p.geometry().isMultipart():
+        isMulti = self._p.geometry().isMultipart()
+        if isMulti and not self._multi:
             dct = {}
             mPolygonVertexes = self._p.geometry().asMultiPolygon()
             for i, part in enumerate(mPolygonVertexes):
@@ -270,7 +279,7 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
                 dct[(i, vertexIndex)] = minDistance
             i, vertexIndex = min(dct, key=dct.get)
             self._nearestEdges(mPolygonVertexes[i][0], vertexIndex)
-        else:
+        elif not isMulti:
             polygonVertexes = self._p.geometry().asPolygon()[0][:-1]
             vertexIndex = self._getNearestVertex(polygonVertexes)[1]
             self._nearestEdges(polygonVertexes, vertexIndex)
