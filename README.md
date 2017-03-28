@@ -1,24 +1,29 @@
 # Polygons Parallel to Line
 ## General description and demonstration
-
 Depending on the settings, the plugin rotates the polygons in such a way that 
 they become parallel to the nearest lines.
 
-In the new layer, a "_`rotated`" field is created with a value `1` for each polygon 
-that has been rotated. If in the source layer such field already exists, and 
-its type is `integer`, then the data of this field remains, but updated in the 
-new layer.
+In the new layer, a "`_rotated`" field is created with a value `1` for each 
+polygon that has been rotated. If in the source layer such field already 
+exists, and its type is `integer`, then the data of this field remains, but 
+updated in the new layer.
 
 * before using the plugin:
 
-![](https://github.com/Elfpkck/pptl_images/blob/master/before.png?raw=true)
+![][before]
 
 * after using the plugin:
 
-![](https://github.com/Elfpkck/pptl_images/blob/master/after.png?raw=true)
+![][after]
+
+## Work preparation
+The provider needs to be activated in the `Processing` options which are 
+accessible from QGIS main menu (`Processing -> Options -> Providers`). Check 
+`Activate` like shown below.
+
+![][processing_options]
 
 ## Algorithm
-
 First, the plugin creates a spatial index for the objects of the linear layer.
 
 Within the distance specified in the "Distance from line" field, for each line 
@@ -36,18 +41,35 @@ smaller angle if in the settings are not chosen "Rotate by longest edge if both
 angles between polygon edges and line segment <= 'Angle value'".
 
 ## Settings
-#### Distance from line
-If value is 0, plugin will process all polygons.
 
-In the following example, the distance is 50 m.
+![][pptl]
+
+I think `Rotate only selected polygons` and `Do not rotate multipolygons` 
+options are not needed in explanations.
+
+#### Distance from line
+If value is 0, plugin will process all polygons. In the following example, the 
+distance is 50 m (showed by grey).
 
 * before:
 
-![](https://github.com/Elfpkck/pptl_images/blob/master/distance_before.png?raw=true)
+![][distance_before]
 
 * after:
 
-![](https://github.com/Elfpkck/pptl_images/blob/master/distance_after.png?raw=true)
+![][distance_after]
+
+#### Angle value
+Value, degrees:
+* min: 0
+* max 89.9
+
+The following example shows the angle between one edge of the polygon and the 
+nearest line segment. The angle for the second side is similar. The plugin 
+compares these angles with the values from the settings.
+
+![][angle]
+
 
 #### Save only selected
 If not chosen "Save only selected", to new layer will saved both rotated and 
@@ -55,12 +77,35 @@ unrotated polygons. This option makes sense if chosen "Rotate only selected
 polygons".
 
 #### Rotate by longest edge if both angles between polygon edges and line segment <= 'Angle value'
-* if not checked:
+* before:
+
+![][long_before]
+
+* if not checked (angle near the short edge less than the long edge):
+
+![][long_without]
+
 * if checked:
 
-#### Do not rotate multipolygons
+![][long_with]
 
-#### Angle value
-Min: 0, max 89.9
+## Afterwords
+Starting with version 0.3 the plugin migrate to QGIS Processing Framework. If 
+you need version before Processing, here it is:
+* [branch][branch]
+* [release 0.2.1][release]
 
 Copyright (C) 2016-2017 by Andrey Lekarev
+
+[before]: https://github.com/Elfpkck/pptl_images/blob/master/before.png?raw=true
+[after]: https://github.com/Elfpkck/pptl_images/blob/master/after.png?raw=true
+[processing_options]: https://github.com/Elfpkck/pptl_images/blob/master/processing_options.png?raw=true
+[pptl]: https://github.com/Elfpkck/pptl_images/blob/master/pptl.png?raw=true
+[distance_before]: https://github.com/Elfpkck/pptl_images/blob/master/distance_before.png?raw=true
+[distance_after]: https://github.com/Elfpkck/pptl_images/blob/master/distance_after.png?raw=true
+[angle]: https://github.com/Elfpkck/pptl_images/blob/master/angle.png?raw=true
+[long_before]: https://github.com/Elfpkck/pptl_images/blob/master/long_before.png?raw=true
+[long_without]: https://github.com/Elfpkck/pptl_images/blob/master/long_without.png?raw=true
+[long_with]: https://github.com/Elfpkck/pptl_images/blob/master/long_with.png?raw=true
+[branch]: https://github.com/Elfpkck/polygons_parallel_to_line/tree/before-processing
+[release]: https://github.com/Elfpkck/polygons_parallel_to_line/releases/tag/0.2.1

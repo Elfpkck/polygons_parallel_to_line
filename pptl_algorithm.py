@@ -104,7 +104,8 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
         self.addParameter(
             ParameterVector(
                 self.LINE_LAYER,
-                self.tr('Select line layer')
+                self.tr('Select line layer'),
+                [ParameterVector.VECTOR_TYPE_LINE]
             )
         )
         self.addParameter(
