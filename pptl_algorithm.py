@@ -190,6 +190,11 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
             raise GeoAlgorithmExecutionException(
                 self.tr("Layer does not have any polygons")
             )
+        if self._isWriteSelected and not self._isSelected:
+            raise GeoAlgorithmExecutionException(
+                self.tr('You have chosen "Save only selected" without '
+                        '"Rotate only selected polygons"')
+            )
         if self._isSelected:
             self._totalNumber = self._polygonLayer.selectedFeatureCount()
             if not self._totalNumber:
@@ -334,14 +339,18 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
             self._nearestVertex
         )
         indexSegmEnd = closestSegment[-1]
-        segmEnd = self._nearLine.geometry().asPolyline()[indexSegmEnd]
-        segmStart = self._nearLine.geometry().asPolyline()[indexSegmEnd - 1]
-        segmentAzimuth = segmStart.azimuth(segmEnd)
+        try:
+            segmEnd = self._nearLine.geometry().asPolyline()[indexSegmEnd]
+        except IndexError:
+            self._progress.setInfo(self._nearLine.id())
+        else:
+            segmStart = self._nearLine.geometry().asPolyline()[indexSegmEnd-1]
+            segmentAzimuth = segmStart.azimuth(segmEnd)
 
-        self._dltAz1 = self._getDeltaAzimuth(segmentAzimuth, line1Azimuth)
-        self._dltAz2 = self._getDeltaAzimuth(segmentAzimuth, line2Azimuth)
+            self._dltAz1 = self._getDeltaAzimuth(segmentAzimuth, line1Azimuth)
+            self._dltAz2 = self._getDeltaAzimuth(segmentAzimuth, line2Azimuth)
 
-        self._azimuth()
+            self._azimuth()
 
     def _getDeltaAzimuth(self, segment, line):
         if (segment >= 0 and line >= 0) or (segment <= 0 and line <= 0):

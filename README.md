@@ -35,19 +35,23 @@ nearest line segment is no larger than the value specified in the "Angle value"
 field, then the polygon rotates relative to the centroid so that the edge 
 becomes parallel to the line segment.
 
+Multipolygons are rotated by the same principle with using the nearest node 
+and the centroid of the multipolygon.
+
 If both the angles between the edges and the line segment are less than the 
 "Angle value", then for the rotation is selected the edge, which forms the 
 smaller angle if in the settings are not chosen "Rotate by longest edge if both 
 angles between polygon edges and line segment <= 'Angle value'".
 
-## Settings
+If the layer objects have geometry errors, rotation may not occur.
 
+## Settings
 ![][pptl]
 
 I think `Rotate only selected polygons` and `Do not rotate multipolygons` 
 options are not needed in explanations.
 
-#### Distance from line
+### Distance from line
 If value is 0, plugin will process all polygons. In the following example, the 
 distance is 50 m (showed by grey).
 
@@ -59,7 +63,7 @@ distance is 50 m (showed by grey).
 
 ![][distance_after]
 
-#### Angle value
+### Angle value
 Value, degrees:
 * min: 0
 * max 89.9
@@ -71,12 +75,12 @@ compares these angles with the values from the settings.
 ![][angle]
 
 
-#### Save only selected
+### Save only selected
 If not chosen "Save only selected", to new layer will saved both rotated and 
 unrotated polygons. This option makes sense if chosen "Rotate only selected 
 polygons".
 
-#### Rotate by longest edge if both angles between polygon edges and line segment <= 'Angle value'
+### Rotate by longest edge if both angles between polygon edges and line segment <= 'Angle value'
 * before:
 
 ![][long_before]
