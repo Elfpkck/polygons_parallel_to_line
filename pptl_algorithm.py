@@ -335,22 +335,37 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
         self._segmentAzimuth(line1Azimuth, line2Azimuth)
 
     def _segmentAzimuth(self, line1Azimuth, line2Azimuth):
-        closestSegment = self._nearLine.geometry().closestSegmentWithContext(
-            self._nearestVertex
-        )
-        indexSegmEnd = closestSegment[-1]
-        try:
-            segmEnd = self._nearLine.geometry().asPolyline()[indexSegmEnd]
-        except IndexError:
-            self._progress.setInfo(self._nearLine.id())
+        nearLineGeom = self._nearLine.geometry()
+        if nearLineGeom.isMultipart():
+            dct = {}
+            minDists = []
+
+            for line in nearLineGeom.asMultiPolyline():
+                l = QgsGeometry.fromPolyline(line)
+                closestSegmContext = l.closestSegmentWithContext(
+                    self._nearestVertex
+                )
+                minDists.append(closestSegmContext[0])
+                dct[closestSegmContext[0]] = [line, closestSegmContext[-1]]
+
+            minDistance = min(minDists)
+            closestSegment = dct[minDistance][0]
+            indexSegmEnd = dct[minDistance][1]
+            segmEnd = closestSegment[indexSegmEnd]
+            segmStart = closestSegment[indexSegmEnd - 1]
         else:
-            segmStart = self._nearLine.geometry().asPolyline()[indexSegmEnd-1]
-            segmentAzimuth = segmStart.azimuth(segmEnd)
+            closestSegmContext = nearLineGeom.closestSegmentWithContext(
+                self._nearestVertex
+            )
+            indexSegmEnd = closestSegmContext[-1]
+            segmEnd = nearLineGeom.asPolyline()[indexSegmEnd]
+            segmStart = nearLineGeom.asPolyline()[indexSegmEnd - 1]
 
-            self._dltAz1 = self._getDeltaAzimuth(segmentAzimuth, line1Azimuth)
-            self._dltAz2 = self._getDeltaAzimuth(segmentAzimuth, line2Azimuth)
+        segmentAzimuth = segmStart.azimuth(segmEnd)
+        self._dltAz1 = self._getDeltaAzimuth(segmentAzimuth, line1Azimuth)
+        self._dltAz2 = self._getDeltaAzimuth(segmentAzimuth, line2Azimuth)
 
-            self._azimuth()
+        self._azimuth()
 
     def _getDeltaAzimuth(self, segment, line):
         if (segment >= 0 and line >= 0) or (segment <= 0 and line <= 0):
