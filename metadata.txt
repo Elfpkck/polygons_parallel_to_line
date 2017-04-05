@@ -12,7 +12,12 @@ tracker=https://github.com/Elfpkck/polygons_parallel_to_line/issues
 repository=https://github.com/Elfpkck/polygons_parallel_to_line
 
 changelog=0.3
-        - migrated to Processing algorithms
+        - migrated to Processing algorithms; full refactoring
+        - much faster
+        - possibility to write to the new layer all or only selected polygons
+        - possibility to rotate or not rotate multipolygons
+        - each polyline of the multipolyline is processed as a separate
+        - the new "_rotated" field is not duplicated if it already exists
     0.2.1
         - translation into Russian and Ukrainian
     0.2

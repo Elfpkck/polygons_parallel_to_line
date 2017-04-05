@@ -30,6 +30,9 @@ Within the distance specified in the "Distance from line" field, for each line
 of the layer selected in the "Select line layer", the plugin finds the nearest 
 polygon of the layer selected in the "Select polygon layer".
 
+If the line is the multipolyline, then each line of the multipolyline is 
+processed as a separate.
+
 Two edges of the polygon adjoin the node. If the angle between the edge and the 
 nearest line segment is no larger than the value specified in the "Angle value" 
 field, then the polygon rotates relative to the centroid so that the edge 
@@ -74,7 +77,6 @@ compares these angles with the values from the settings.
 
 ![][angle]
 
-
 ### Save only selected
 If not chosen "Save only selected", to new layer will saved both rotated and 
 unrotated polygons. This option makes sense if chosen "Rotate only selected 
@@ -93,12 +95,6 @@ polygons".
 
 ![][long_with]
 
-## Afterwords
-Starting with version 0.3 the plugin migrate to QGIS Processing Framework. If 
-you need version before Processing, here it is:
-* [branch][branch]
-* [release 0.2.1][release]
-
 Copyright (C) 2016-2017 by Andrey Lekarev
 
 [before]: https://github.com/Elfpkck/pptl_images/blob/master/before.png?raw=true
@@ -111,5 +107,3 @@ Copyright (C) 2016-2017 by Andrey Lekarev
 [long_before]: https://github.com/Elfpkck/pptl_images/blob/master/long_before.png?raw=true
 [long_without]: https://github.com/Elfpkck/pptl_images/blob/master/long_without.png?raw=true
 [long_with]: https://github.com/Elfpkck/pptl_images/blob/master/long_with.png?raw=true
-[branch]: https://github.com/Elfpkck/polygons_parallel_to_line/tree/before-processing
-[release]: https://github.com/Elfpkck/polygons_parallel_to_line/releases/tag/0.2.1
