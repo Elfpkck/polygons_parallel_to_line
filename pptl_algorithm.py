@@ -165,6 +165,7 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
         self._createLineSpatialIndex()
         self._validatePolygonLayer()
         self._addAttribute()
+        self._linesDict = {x.id(): x for x in self._lineLayer.getFeatures()}
         self._rotateAndWriteSelectedOrAll(self._getWriter())
         self._deleteAttribute()
 
@@ -241,12 +242,12 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
 
     def _rotateAndWriteSeleced(self, writer):
         if self._isWriteSelected:
-            polygons = self._polygonLayer.selectedFeatures()
-            for polygon in polygons:
+            for polygon in self._polygonLayer.selectedFeatures():
                 self._rotateAndWritePolygon(polygon, writer)
         else:
+            selectedPolygonsIds = self._polygonLayer.selectedFeaturesIds()
             for p in self._polygonLayer.getFeatures():
-                if p.id() in self._polygonLayer.selectedFeaturesIds():
+                if p.id() in selectedPolygonsIds:
                     self._rotateAndWritePolygon(p, writer)
                 else:
                     writer.addFeature(p)
@@ -271,9 +272,7 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
     def _getNearestLine(self):
         self._center = self._p.geometry().centroid()
         nearId = self._index.nearestNeighbor(self._center.asPoint(), 1)
-        for line in self._lineLayer.getFeatures():
-            if line.id() == nearId[0]:
-                self._nearLine = line
+        self._nearLine = self._linesDict.get(nearId[0])
 
     def _simpleOrMultiGeometry(self):
         isMulti = self._p.geometry().isMultipart()
