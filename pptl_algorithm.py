@@ -35,7 +35,6 @@ import pydevd_pycharm
 
 
 from qgis.PyQt.QtCore import QCoreApplication, QSettings, QVariant
-from qgis._core import QgsFeatureSink
 from qgis.core import (
     QgsField,
     QgsGeometry,
@@ -43,27 +42,16 @@ from qgis.core import (
     QgsProcessingAlgorithm,
     QgsProcessingParameterBoolean,
     QgsProcessingParameterFeatureSource,
-    QgsProcessingParameterVectorLayer,
     QgsSpatialIndex,
-    QgsVectorFileWriter,
     QgsProcessingParameterNumber,
     QgsProcessingException,
     QgsProcessingParameterFeatureSink,
     QgsPoint,
+    QgsFeatureSink,
 )
 
 
-# from processing.core.GeoAlgorithm import GeoAlgorithm
-# from processing.core.QgsProcessingException import (
-#     QgsProcessingException)
-# from processing.core.parameters import (ParameterVector, ParameterBoolean,
-#                                         ParameterNumber)
-# from processing.core.outputs import OutputVector
-# from processing.tools import dataobjects
-
-
 class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
-
     OUTPUT_LAYER = "OUTPUT_LAYER"
     LINE_LAYER = "LINE_LAYER"
     POLYGON_LAYER = "POLYGON_LAYER"
@@ -172,8 +160,8 @@ class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
         self._byLongest = self.parameterAsBool(parameters, self.LONGEST, context)
         self._multi = self.parameterAsBool(parameters, self.MULTI, context)
         self._distance = self.parameterAsInt(parameters, self.DISTANCE, context)
-        self._angle = self.parameterAsInt(parameters, self.ANGLE, context)
-        # self._outputLayer = self.getOutputValue(self.OUTPUT_LAYER)
+        # self._angle = self.parameterAsInt(parameters, self.ANGLE, context)
+        self._angle = 89  # TODO: remove
         (self.sink, self.dest_id) = self.parameterAsSink(
             parameters,
             self.OUTPUT_LAYER,
@@ -393,13 +381,17 @@ class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
 
     def _rotateByLongest(self, delta1, delta2):
         if delta1 <= self._angle and delta2 <= self._angle:
-            length1 = self._line1.geometry().length()
-            length2 = self._line2.geometry().length()
+            length1 = self._line1.length()
+            length2 = self._line2.length()
 
             if length1 >= length2:
-                self._p.geometry().rotate(self._dltAz1, self._center.asPoint())
+                geom = self._p.geometry()
+                geom.rotate(self._dltAz1, self._center.asPoint())
+                self._p.setGeometry(geom)
             elif length1 < length2:
-                self._p.geometry().rotate(self._dltAz2, self._center.asPoint())
+                geom = self._p.geometry()
+                geom.rotate(self._dltAz2, self._center.asPoint())
+                self._p.setGeometry(geom)
             elif length1 == length2:
                 self._rotateNotByLongest(delta1, delta2)
             else:
@@ -407,17 +399,25 @@ class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
 
     def _rotateNotByLongest(self, delta1, delta2):
         if delta1 > delta2:
-            self._p.geometry().rotate(self._dltAz2, self._center.asPoint())
+            geom = self._p.geometry()
+            geom.rotate(self._dltAz2, self._center.asPoint())
+            self._p.setGeometry(geom)
         elif delta1 <= delta2:
-            self._p.geometry().rotate(self._dltAz1, self._center.asPoint())
+            geom = self._p.geometry()
+            geom.rotate(self._dltAz1, self._center.asPoint())
+            self._p.setGeometry(geom)
         else:
             self._rotationCheck = False
 
     def _othersRotations(self, delta1, delta2):
         if delta1 <= self._angle:
-            self._p.geometry().rotate(self._dltAz1, self._center.asPoint())
+            geom = self._p.geometry()
+            geom.rotate(self._dltAz1, self._center.asPoint())
+            self._p.setGeometry(geom)
         elif delta2 <= self._angle:
+            geom = self._p.geometry()
             self._p.geometry().rotate(self._dltAz2, self._center.asPoint())
+            self._p.setGeometry(geom)
         else:
             self._rotationCheck = False
 
