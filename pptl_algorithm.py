@@ -7,7 +7,7 @@
  This plugin rotates polygons parallel to line
                               -------------------
         begin                : 2016-03-10
-        copyright            : (C) 2016-2017 by Andrey Lekarev
+        copyright            : (C) 2016-2017 by Andrii Liekariev
         email                : elfpkck@gmail.com
  ***************************************************************************/
 
@@ -24,161 +24,164 @@
 from __future__ import division
 
 
-__author__ = 'Andrey Lekarev'
-__date__ = '2016-03-10'
-__copyright__ = '(C) 2016-2017 by Andrey Lekarev'
+__author__ = "Andrii Liekariev"
+__date__ = "2016-03-10"
+__copyright__ = "(C) 2016-2017 by Andrii Liekariev"
 
 # This will get replaced with a git SHA1 when you do a git archive
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
-import os.path
-
-from PyQt4.QtCore import (QSettings, QVariant, QTranslator, qVersion,
-                          QCoreApplication)
-from PyQt4.QtGui import QIcon
-
-from qgis.core import (QgsVectorFileWriter, QgsSpatialIndex, QgsGeometry,
-                       QgsField)
-
-from processing.core.GeoAlgorithm import GeoAlgorithm
-from processing.core.GeoAlgorithmExecutionException import (
-    GeoAlgorithmExecutionException)
-from processing.core.parameters import (ParameterVector, ParameterBoolean,
-                                        ParameterNumber)
-from processing.core.outputs import OutputVector
-from processing.tools import dataobjects
+import pydevd_pycharm
 
 
-class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
+from qgis.PyQt.QtCore import QCoreApplication, QSettings, QVariant
+from qgis._core import QgsFeatureSink
+from qgis.core import (
+    QgsField,
+    QgsGeometry,
+    QgsProcessing,
+    QgsProcessingAlgorithm,
+    QgsProcessingParameterBoolean,
+    QgsProcessingParameterFeatureSource,
+    QgsProcessingParameterVectorLayer,
+    QgsSpatialIndex,
+    QgsVectorFileWriter,
+    QgsProcessingParameterNumber,
+    QgsProcessingException,
+    QgsProcessingParameterFeatureSink,
+    QgsPoint,
+)
 
-    OUTPUT_LAYER = 'OUTPUT_LAYER'
-    LINE_LAYER = 'LINE_LAYER'
-    POLYGON_LAYER = 'POLYGON_LAYER'
-    SELECTED = 'SELECTED'
-    WRITE_SELECTED = 'WRITE_SELECTED'
-    LONGEST = 'LONGEST'
-    MULTI = 'MULTI'
-    DISTANCE = 'DISTANCE'
-    ANGLE = 'ANGLE'
-    COLUMN_NAME = '_rotated'
 
-    def __init__(self):
-        self._translateUi()
-        GeoAlgorithm.__init__(self)
+# from processing.core.GeoAlgorithm import GeoAlgorithm
+# from processing.core.QgsProcessingException import (
+#     QgsProcessingException)
+# from processing.core.parameters import (ParameterVector, ParameterBoolean,
+#                                         ParameterNumber)
+# from processing.core.outputs import OutputVector
+# from processing.tools import dataobjects
 
-    def _translateUi(self):
-        locale = QSettings().value('locale/userLocale')[0:2]
-        locale_path = os.path.join(
-            os.path.dirname(__file__),
-            'i18n',
-            'pptl_{}.qm'.format(locale)
-        )
-        if os.path.exists(locale_path):
-            self.translator = QTranslator()
-            self.translator.load(locale_path)
 
-            if qVersion() > '4.3.3':
-                QCoreApplication.installTranslator(self.translator)
+class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
 
-    def getIcon(self):
-        path = os.path.join(os.path.dirname(__file__), "icons", "icon.png")
-        return QIcon(path)
+    OUTPUT_LAYER = "OUTPUT_LAYER"
+    LINE_LAYER = "LINE_LAYER"
+    POLYGON_LAYER = "POLYGON_LAYER"
+    SELECTED = "SELECTED"
+    WRITE_SELECTED = "WRITE_SELECTED"
+    LONGEST = "LONGEST"
+    MULTI = "MULTI"
+    DISTANCE = "DISTANCE"
+    ANGLE = "ANGLE"
+    COLUMN_NAME = "_rotated"
 
-    def tr(self, message):
-        className = self.__class__.__name__
-        return QCoreApplication.translate(className, message)
+    def tr(self, string):
+        return QCoreApplication.translate("Processing", string)
 
-    def defineCharacteristics(self):
-        # The name that the user will see in the toolbox
-        self.name = self.tr('Polygons parallel to line')
+    def createInstance(self):
+        return PolygonsParallelToLineAlgorithm()
 
-        # The branch of the toolbox under which the algorithm will appear
-        self.group = self.tr('Algorithms for vector layers')
+    def name(self):
+        return "pptl_algo"
 
-        self.addOutput(
-            OutputVector(
+    def displayName(self):
+        return self.tr("Polygons parallel to line")
+
+    def group(self):
+        """
+        Returns the name of the group this algorithm belongs to. This string
+        should be localised.
+        """
+        return self.tr("Algorithms for vector layers")
+
+    def groupId(self):
+        """
+        Returns the unique ID of the group this algorithm belongs to. This
+        string should be fixed for the algorithm, and must not be localised.
+        The group id should be unique within each provider. Group id should
+        contain lowercase alphanumeric characters only and no spaces or other
+        formatting characters.
+        """
+        return "examplescripts"
+
+    def shortHelpString(self):
+        """
+        Returns a localised short helper string for the algorithm. This string
+        should provide a basic description about what the algorithm does and the
+        parameters and outputs associated with it..
+        """
+        return self.tr("Example algorithm short description")
+
+    def initAlgorithm(self, config=None):
+        self.addParameter(
+            QgsProcessingParameterFeatureSink(
                 self.OUTPUT_LAYER,
-                'Output layer with rotated polygons'
+                "Output layer with rotated polygons",
             )
         )
         self.addParameter(
-            ParameterVector(
-                self.LINE_LAYER,
-                self.tr('Select line layer'),
-                [ParameterVector.VECTOR_TYPE_LINE]
+            QgsProcessingParameterFeatureSource(
+                self.LINE_LAYER, self.tr("Select line layer"), [QgsProcessing.TypeVectorLine]
             )
         )
         self.addParameter(
-            ParameterVector(
-                self.POLYGON_LAYER,
-                self.tr('Select polygon layer'),
-                [ParameterVector.VECTOR_TYPE_POLYGON]
+            QgsProcessingParameterFeatureSource(
+                self.POLYGON_LAYER, self.tr("Select polygon layer"), [QgsProcessing.TypeVectorPolygon]
             )
         )
         self.addParameter(
-            ParameterBoolean(
-                self.SELECTED,
-                self.tr('Rotate only selected polygons')
-            )
+            QgsProcessingParameterBoolean(self.SELECTED, self.tr("Rotate only selected polygons"), defaultValue=False)
         )
         self.addParameter(
-            ParameterBoolean(
-                self.WRITE_SELECTED,
-                self.tr('Save only selected'),
-            )
+            QgsProcessingParameterBoolean(self.WRITE_SELECTED, self.tr("Save only selected"), defaultValue=False)
         )
         self.addParameter(
-            ParameterBoolean(
+            QgsProcessingParameterBoolean(
                 self.LONGEST,
-                self.tr("Rotate by longest edge if both angles between "
-                        "polygon edges and line segment <= 'Angle value'")
+                self.tr(
+                    "Rotate by longest edge if both angles between " "polygon edges and line segment <= 'Angle value'"
+                ),
+                defaultValue=False,
             )
         )
         self.addParameter(
-            ParameterBoolean(
-                self.MULTI,
-                self.tr("Do not rotate multipolygons")
-            )
+            QgsProcessingParameterBoolean(self.MULTI, self.tr("Do not rotate multipolygons"), defaultValue=False)
         )
-        self.addParameter(
-            ParameterNumber(
-                self.DISTANCE,
-                self.tr("Distance from line")
-            )
-        )
-        self.addParameter(
-            ParameterNumber(
-                self.ANGLE,
-                self.tr("Angle value"),
-                maxValue=89.9
-            )
-        )
+        self.addParameter(QgsProcessingParameterNumber(self.DISTANCE, self.tr("Distance from line")))
+        self.addParameter(QgsProcessingParameterNumber(self.ANGLE, self.tr("Angle value"), maxValue=89.9))
 
-    def processAlgorithm(self, progress):
+    def processAlgorithm(self, parameters, context, feedback):
+        pydevd_pycharm.settrace("127.0.0.1", port=53100, stdoutToServer=True, stderrToServer=True)
         self._operationCounter = 0
-        self._progress = progress
-        self._getInputValues()
-        self._lineLayer = dataobjects.getObjectFromUri(self._lineLayerName)
-        self._polygonLayer = dataobjects.getObjectFromUri(
-            self._polygonLayerName
-        )
+        # self._progress = progress
+        self._getInputValues(parameters, context)
+
         self._createLineSpatialIndex()
         self._validatePolygonLayer()
         self._addAttribute()
         self._linesDict = {x.id(): x for x in self._lineLayer.getFeatures()}
-        self._rotateAndWriteSelectedOrAll(self._getWriter())
+        self._rotateAndWriteSelectedOrAll()
         self._deleteAttribute()
+        return {self.OUTPUT_LAYER: self.dest_id}
 
-    def _getInputValues(self):
-        self._lineLayerName = self.getParameterValue(self.LINE_LAYER)
-        self._polygonLayerName = self.getParameterValue(self.POLYGON_LAYER)
-        self._isSelected = self.getParameterValue(self.SELECTED)
-        self._isWriteSelected = self.getParameterValue(self.WRITE_SELECTED)
-        self._byLongest = self.getParameterValue(self.LONGEST)
-        self._multi = self.getParameterValue(self.MULTI)
-        self._distance = self.getParameterValue(self.DISTANCE)
-        self._angle = self.getParameterValue(self.ANGLE)
-        self._outputLayer = self.getOutputValue(self.OUTPUT_LAYER)
+    def _getInputValues(self, parameters, context):
+        self._lineLayer = self.parameterAsVectorLayer(parameters, self.LINE_LAYER, context)
+        self._polygonLayer = self.parameterAsVectorLayer(parameters, self.POLYGON_LAYER, context)
+        self._isSelected = self.parameterAsBool(parameters, self.SELECTED, context)
+        self._isWriteSelected = self.parameterAsBool(parameters, self.WRITE_SELECTED, context)
+        self._byLongest = self.parameterAsBool(parameters, self.LONGEST, context)
+        self._multi = self.parameterAsBool(parameters, self.MULTI, context)
+        self._distance = self.parameterAsInt(parameters, self.DISTANCE, context)
+        self._angle = self.parameterAsInt(parameters, self.ANGLE, context)
+        # self._outputLayer = self.getOutputValue(self.OUTPUT_LAYER)
+        (self.sink, self.dest_id) = self.parameterAsSink(
+            parameters,
+            self.OUTPUT_LAYER,
+            context,
+            self._polygonLayer.fields(),
+            self._polygonLayer.wkbType(),
+            self._polygonLayer.sourceCrs(),
+        )
 
     def _createLineSpatialIndex(self):
         self._index = QgsSpatialIndex()
@@ -188,80 +191,65 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
     def _validatePolygonLayer(self):
         self._totalNumber = self._polygonLayer.featureCount()
         if not self._totalNumber:
-            raise GeoAlgorithmExecutionException(
-                self.tr("Layer does not have any polygons")
-            )
+            raise QgsProcessingException(self.tr("Layer does not have any polygons"))
         if self._isWriteSelected and not self._isSelected:
-            raise GeoAlgorithmExecutionException(
-                self.tr('You have chosen "Save only selected" without '
-                        '"Rotate only selected polygons"')
+            raise QgsProcessingException(
+                self.tr('You have chosen "Save only selected" without ' '"Rotate only selected polygons"')
             )
         if self._isSelected:
             self._totalNumber = self._polygonLayer.selectedFeatureCount()
             if not self._totalNumber:
-                raise GeoAlgorithmExecutionException(
-                    self.tr('You have chosen "Rotate only selected polygons" '
-                            'but there are no selected')
+                raise QgsProcessingException(
+                    self.tr('You have chosen "Rotate only selected polygons" ' "but there are no selected")
                 )
 
     def _addAttribute(self):
-        for attr in self._polygonLayer.pendingFields():
+        for attr in self._polygonLayer.fields():
             if self.COLUMN_NAME == attr.name():
                 if attr.isNumeric():
                     break
                 else:
                     self._deleteAttribute()
         else:
-            self._polygonLayer.dataProvider().addAttributes(
-                [QgsField(self.COLUMN_NAME, QVariant.Int)]
-            )
+            self._polygonLayer.dataProvider().addAttributes([QgsField(self.COLUMN_NAME, QVariant.Int)])
             self._polygonLayer.updateFields()
 
     def _deleteAttribute(self):
-        for i, attr in enumerate(self._polygonLayer.pendingFields()):
+        for i, attr in enumerate(self._polygonLayer.fields()):
             if attr.name() == self.COLUMN_NAME:
                 self._polygonLayer.dataProvider().deleteAttributes([i])
                 self._polygonLayer.updateFields()
 
-    def _getWriter(self):
-        settings = QSettings()
-        systemEncoding = settings.value('/UI/encoding', 'System')
-        provider = self._polygonLayer.dataProvider()
-        return QgsVectorFileWriter(
-            self._outputLayer, systemEncoding, provider.fields(),
-            provider.geometryType(), provider.crs()
-        )
-
-    def _rotateAndWriteSelectedOrAll(self, writer):
+    def _rotateAndWriteSelectedOrAll(self):
         if self._isSelected:
-            self._rotateAndWriteSeleced(writer)
+            self._rotateAndWriteSeleced()
         else:
             polygons = self._polygonLayer.getFeatures()
             for polygon in polygons:
-                self._rotateAndWritePolygon(polygon, writer)
+                self._rotateAndWritePolygon(polygon)
 
-    def _rotateAndWriteSeleced(self, writer):
+    def _rotateAndWriteSeleced(self):
         if self._isWriteSelected:
             for polygon in self._polygonLayer.selectedFeatures():
-                self._rotateAndWritePolygon(polygon, writer)
+                self._rotateAndWritePolygon(polygon)
         else:
             selectedPolygonsIds = self._polygonLayer.selectedFeaturesIds()
             for p in self._polygonLayer.getFeatures():
                 if p.id() in selectedPolygonsIds:
-                    self._rotateAndWritePolygon(p, writer)
+                    self._rotateAndWritePolygon(p)
                 else:
-                    writer.addFeature(p)
+                    self.sink.addFeature(p, QgsFeatureSink.FastInsert)  # TODO: addFeatures
 
-    def _rotateAndWritePolygon(self, polygon, writer):
+    def _rotateAndWritePolygon(self, polygon):
         self._progressBar()
         self._p = polygon
         self._initiateRotation()
-        writer.addFeature(self._p)
+        self.sink.addFeature(self._p, QgsFeatureSink.FastInsert)  # TODO: addFeatures
 
     def _progressBar(self):
         self._operationCounter += 1
         currentPercentage = self._operationCounter / self._totalNumber * 100
-        self._progress.setPercentage(round(currentPercentage))
+        # self._progress.setPercentage(round(currentPercentage))
 
     def _initiateRotation(self):
         self._getNearestLine()
@@ -292,7 +280,7 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
     def _getNearestVertex(self, polygonVertexes):
         vertexToSegmentDict = {}
         for vertex in polygonVertexes:
-            vertexGeom = QgsGeometry.fromPoint(vertex)
+            vertexGeom = QgsGeometry.fromPointXY(vertex)
             vertexToSegment = vertexGeom.distance(self._nearLine.geometry())
             vertexToSegmentDict[vertexToSegment] = vertex
 
@@ -304,33 +292,23 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
     def _nearestEdges(self, polygonVertexes, vertexIndex):
         # if vertex is first
         if vertexIndex == 0:
-            self._line1 = QgsGeometry.fromPolyline(
-                [polygonVertexes[0], polygonVertexes[1]])
-            self._line2 = QgsGeometry.fromPolyline(
-                [polygonVertexes[0], polygonVertexes[-1]])
+            self._line1 = QgsGeometry.fromPolyline([QgsPoint(polygonVertexes[0]), QgsPoint(polygonVertexes[1])])
+            self._line2 = QgsGeometry.fromPolyline([QgsPoint(polygonVertexes[0]), QgsPoint(polygonVertexes[-1])])
 
         # if vertex is last
         elif vertexIndex == len(polygonVertexes) - 1:
-            self._line1 = QgsGeometry.fromPolyline(
-                [polygonVertexes[-1], polygonVertexes[0]])
-            self._line2 = QgsGeometry.fromPolyline(
-                [polygonVertexes[-1], polygonVertexes[-2]])
+            self._line1 = QgsGeometry.fromPolyline([QgsPoint(polygonVertexes[-1]), QgsPoint(polygonVertexes[0])])
+            self._line2 = QgsGeometry.fromPolyline([QgsPoint(polygonVertexes[-1]), QgsPoint(polygonVertexes[-2])])
         else:
             self._line1 = QgsGeometry.fromPolyline(
-                [polygonVertexes[vertexIndex],
-                 polygonVertexes[vertexIndex + 1]]
+                [QgsPoint(polygonVertexes[vertexIndex]), QgsPoint(polygonVertexes[vertexIndex + 1])]
             )
             self._line2 = QgsGeometry.fromPolyline(
-                [polygonVertexes[vertexIndex],
-                 polygonVertexes[vertexIndex - 1]]
+                [QgsPoint(polygonVertexes[vertexIndex]), QgsPoint(polygonVertexes[vertexIndex - 1])]
             )
 
-        line1Azimuth = self._line1.asPolyline()[0].azimuth(
-            self._line1.asPolyline()[1]
-        )
-        line2Azimuth = self._line2.asPolyline()[0].azimuth(
-            self._line2.asPolyline()[1]
-        )
+        line1Azimuth = self._line1.asPolyline()[0].azimuth(self._line1.asPolyline()[1])
+        line2Azimuth = self._line2.asPolyline()[0].azimuth(self._line2.asPolyline()[1])
         self._segmentAzimuth(line1Azimuth, line2Azimuth)
 
     def _segmentAzimuth(self, line1Azimuth, line2Azimuth):
@@ -340,10 +318,8 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
             minDists = []
 
             for line in nearLineGeom.asMultiPolyline():
-                l = QgsGeometry.fromPolyline(line)
-                closestSegmContext = l.closestSegmentWithContext(
-                    self._nearestVertex
-                )
+                l = QgsGeometry.fromPolyline([QgsPoint(x) for x in line])
+                closestSegmContext = l.closestSegmentWithContext(self._nearestVertex)
                 minDists.append(closestSegmContext[0])
                 dct[closestSegmContext[0]] = [line, closestSegmContext[-1]]
 
@@ -353,9 +329,7 @@ class PolygonsParallelToLineAlgorithm(GeoAlgorithm):
             segmEnd = closestSegment[indexSegmEnd]
             segmStart = closestSegment[indexSegmEnd - 1]
         else:
-            closestSegmContext = nearLineGeom.closestSegmentWithContext(
-                self._nearestVertex
-            )
+            closestSegmContext = nearLineGeom.closestSegmentWithContext(self._nearestVertex)
             indexSegmEnd = closestSegmContext[-1]
             segmEnd = nearLineGeom.asPolyline()[indexSegmEnd]
             segmStart = nearLineGeom.asPolyline()[indexSegmEnd - 1]

@@ -7,7 +7,7 @@
  This plugin rotates polygons parallel to line
                               -------------------
         begin                : 2016-03-10
-        copyright            : (C) 2016-2017 by Andrey Lekarev
+        copyright            : (C) 2016-2017 by Andrii Liekariev
         email                : elfpkck@gmail.com
  ***************************************************************************/
 
@@ -20,21 +20,24 @@
  *                                                                         *
  ***************************************************************************/
 """
+from __future__ import absolute_import
 
-__author__ = 'Andrey Lekarev'
-__date__ = '2016-03-10'
-__copyright__ = '(C) 2016-2017 by Andrey Lekarev'
+from builtins import object
+
+__author__ = "Andrii Liekariev"
+__date__ = "2016-03-10"
+__copyright__ = "(C) 2016-2017 by Andrii Liekariev"
 
 # This will get replaced with a git SHA1 when you do a git archive
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
 
 import os.path
 import sys
 import inspect
 
-from processing.core.Processing import Processing
-from pptl_provider import PolygonsParallelToLineProvider
+from qgis.core import QgsApplication
+from .pptl_provider import PolygonsParallelToLineProvider
 
 cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
 
@@ -43,12 +46,15 @@ if cmd_folder not in sys.path:
 
 
 class PolygonsParallelToLinePlugin:
-
     def __init__(self):
+        self.provider = None
+
+    def initProcessing(self):
         self.provider = PolygonsParallelToLineProvider()
+        QgsApplication.processingRegistry().addProvider(self.provider)
 
     def initGui(self):
-        Processing.addProvider(self.provider)
+        self.initProcessing()
 
     def unload(self):
-        Processing.removeProvider(self.provider)
+        QgsApplication.processingRegistry().removeProvider(self.provider)
