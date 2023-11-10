@@ -139,7 +139,7 @@ class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(QgsProcessingParameterNumber(self.ANGLE, self.tr("Angle value"), maxValue=89.9))
 
     def processAlgorithm(self, parameters, context, feedback):
-        pydevd_pycharm.settrace("127.0.0.1", port=53100, stdoutToServer=True, stderrToServer=True)
+        # pydevd_pycharm.settrace("127.0.0.1", port=53100, stdoutToServer=True, stderrToServer=True)
         self._operationCounter = 0
         # self._progress = progress
         self._getInputValues(parameters, context)
@@ -150,6 +150,7 @@ class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
         self._linesDict = {x.id(): x for x in self._lineLayer.getFeatures()}
         self._rotateAndWriteSelectedOrAll()
         self._deleteAttribute()
+        vlyr = context.getMapLayer(self.dest_id)  # TODO: for testing. remove
         return {self.OUTPUT_LAYER: self.dest_id}
 
     def _getInputValues(self, parameters, context):
@@ -160,8 +161,7 @@ class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
         self._byLongest = self.parameterAsBool(parameters, self.LONGEST, context)
         self._multi = self.parameterAsBool(parameters, self.MULTI, context)
         self._distance = self.parameterAsInt(parameters, self.DISTANCE, context)
-        # self._angle = self.parameterAsInt(parameters, self.ANGLE, context)
-        self._angle = 89  # TODO: remove
+        self._angle = self.parameterAsInt(parameters, self.ANGLE, context)
         (self.sink, self.dest_id) = self.parameterAsSink(
             parameters,
             self.OUTPUT_LAYER,

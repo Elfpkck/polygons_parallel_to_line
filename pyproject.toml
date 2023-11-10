@@ -9,6 +9,8 @@ packages = [{include = "polygons_parallel_to_line"}]
 [tool.poetry.dependencies]
 python = "^3.9"
 
+[tool.poetry.group.dev.dependencies]
+pydevd-pycharm = "^233.11555.5"
 
 [build-system]
 requires = ["poetry-core"]
