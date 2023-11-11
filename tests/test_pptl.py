@@ -1,9 +1,4 @@
-from qgis._core import (
-    QgsFeature,
-    QgsGeometry,
-    QgsProcessingOutputLayerDefinition,
-    QgsVectorLayer,
-)
+from qgis.core import QgsFeature, QgsGeometry, QgsProcessingOutputLayerDefinition, QgsVectorLayer
 
 from src.algorithm import Algorithm
 from qgis import processing
