@@ -105,7 +105,7 @@ class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
                 "Output layer with rotated polygons",
             )
         )
-        self.addParameter(
+        self.addParameter(  # TODO: polyline doesn't work with poly and multipoly. Check multipolyline
             QgsProcessingParameterFeatureSource(
                 self.LINE_LAYER, self.tr("Select line layer"), [QgsProcessing.TypeVectorLine]
             )
@@ -118,7 +118,7 @@ class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterBoolean(self.SELECTED, self.tr("Rotate only selected polygons"), defaultValue=False)
         )
-        self.addParameter(
+        self.addParameter(  # TODO: allow to check only when "Rotate only selected polygons" is checked
             QgsProcessingParameterBoolean(self.WRITE_SELECTED, self.tr("Save only selected"), defaultValue=False)
         )
         self.addParameter(
