@@ -5,7 +5,7 @@ from qgis._core import (
     QgsVectorLayer,
 )
 
-from src.algorithm import PolygonsParallelToLineAlgorithm
+from src.algorithm import Algorithm
 from qgis import processing
 import pytest
 import pydevd_pycharm
@@ -145,5 +145,5 @@ def test_pptl(line, poly, expected, distance, angle, longest, no_multi, qgis_pro
         "ANGLE": angle,
         "OUTPUT_LAYER": QgsProcessingOutputLayerDefinition("TEMPORARY_OUTPUT"),
     }
-    result = processing.run(PolygonsParallelToLineAlgorithm(), params)["result"]
+    result = processing.run(Algorithm(), params)["result"]
     assert result == expected

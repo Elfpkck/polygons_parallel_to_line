@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 /***************************************************************************
  PolygonsParallelToLine
@@ -30,12 +28,12 @@ __revision__ = "$Format:%H$"
 
 
 from qgis.core import QgsProcessingProvider
-from .algorithm import PolygonsParallelToLineAlgorithm
+from .algorithm import Algorithm
 
 
-class PolygonsParallelToLineProvider(QgsProcessingProvider):
+class Provider(QgsProcessingProvider):
     def loadAlgorithms(self, *args, **kwargs):
-        self.addAlgorithm(PolygonsParallelToLineAlgorithm())
+        self.addAlgorithm(Algorithm())
 
     def id(self, *args, **kwargs):
         return "pptl"

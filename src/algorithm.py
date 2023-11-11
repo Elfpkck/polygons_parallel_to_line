@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 /***************************************************************************
  PolygonsParallelToLine
@@ -49,7 +47,7 @@ from qgis.core import (
 )
 
 
-class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
+class Algorithm(QgsProcessingAlgorithm):
     OUTPUT_LAYER = "OUTPUT_LAYER"
     LINE_LAYER = "LINE_LAYER"
     POLYGON_LAYER = "POLYGON_LAYER"
@@ -65,7 +63,7 @@ class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
         return QCoreApplication.translate("Processing", string)
 
     def createInstance(self):
-        return PolygonsParallelToLineAlgorithm()
+        return Algorithm()
 
     def name(self):
         return "pptl_algo"

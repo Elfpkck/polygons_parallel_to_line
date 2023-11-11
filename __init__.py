@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 /***************************************************************************
  PolygonsParallelToLine
@@ -32,6 +31,6 @@ __revision__ = "$Format:%H$"
 
 # noinspection PyPep8Naming
 def classFactory(iface):
-    from .src.plugin import PolygonsParallelToLinePlugin
+    from .src.plugin import Plugin
 
-    return PolygonsParallelToLinePlugin()
+    return Plugin()
