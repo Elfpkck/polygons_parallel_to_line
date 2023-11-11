@@ -5,7 +5,7 @@ from qgis._core import (
     QgsVectorLayer,
 )
 
-from src.pptl_algorithm import PolygonsParallelToLineAlgorithm
+from src.algorithm import PolygonsParallelToLineAlgorithm
 from qgis import processing
 import pytest
 import pydevd_pycharm

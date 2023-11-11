@@ -448,3 +448,4 @@ class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
 
 
 # TODO: for the future: a method to make 2 objects (lines, polygons) parallel
+# TODO: update translations including path

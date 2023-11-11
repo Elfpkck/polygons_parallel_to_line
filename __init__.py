@@ -32,6 +32,6 @@ __revision__ = "$Format:%H$"
 
 # noinspection PyPep8Naming
 def classFactory(iface):
-    from .src.pptl import PolygonsParallelToLinePlugin
+    from .src.plugin import PolygonsParallelToLinePlugin
 
     return PolygonsParallelToLinePlugin()
