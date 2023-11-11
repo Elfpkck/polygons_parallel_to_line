@@ -7,7 +7,7 @@
  This plugin rotates polygons parallel to line
                               -------------------
         begin                : 2016-03-10
-        copyright            : (C) 2016-2017 by Andrii Liekariev
+        copyright            : (C) 2016-2023 by Andrii Liekariev
         email                : elfpkck@gmail.com
  ***************************************************************************/
 
@@ -24,7 +24,7 @@ from __future__ import absolute_import
 
 __author__ = "Andrii Liekariev"
 __date__ = "2016-03-10"
-__copyright__ = "(C) 2016-2017 by Andrii Liekariev"
+__copyright__ = "(C) 2016-2023 by Andrii Liekariev"
 
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = "$Format:%H$"

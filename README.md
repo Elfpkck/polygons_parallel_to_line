@@ -95,7 +95,7 @@ polygons".
 
 ![][long_with]
 
-Copyright (C) 2016-2017 by Andrii Liekariev
+Copyright (C) 2016-2023 by Andrii Liekariev
 
 [before]: https://github.com/Elfpkck/pptl_images/blob/master/before.png?raw=true
 [after]: https://github.com/Elfpkck/pptl_images/blob/master/after.png?raw=true
