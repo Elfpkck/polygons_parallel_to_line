@@ -135,8 +135,25 @@ class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterBoolean(self.MULTI, self.tr("Do not rotate multipolygons"), defaultValue=False)
         )
-        self.addParameter(QgsProcessingParameterNumber(self.DISTANCE, self.tr("Distance from line")))
-        self.addParameter(QgsProcessingParameterNumber(self.ANGLE, self.tr("Angle value"), maxValue=89.9))
+        self.addParameter(  # TODO: doesn't work
+            QgsProcessingParameterNumber(
+                self.DISTANCE,
+                self.tr("Distance from line"),
+                type=QgsProcessingParameterNumber.Double,
+                minValue=0.0,
+                defaultValue=0.0,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                self.ANGLE,
+                self.tr("Angle value"),
+                type=QgsProcessingParameterNumber.Double,
+                minValue=0.0,
+                maxValue=89.9,
+                defaultValue=89.9,
+            )
+        )
 
     def processAlgorithm(self, parameters, context, feedback):
         # pydevd_pycharm.settrace("127.0.0.1", port=53100, stdoutToServer=True, stderrToServer=True)
@@ -150,13 +167,18 @@ class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
         self._linesDict = {x.id(): x for x in self._lineLayer.getFeatures()}
         self._rotateAndWriteSelectedOrAll()
         self._deleteAttribute()
-        vlyr = context.getMapLayer(self.dest_id)  # TODO: for testing. remove
-        return {self.OUTPUT_LAYER: self.dest_id}
+        vlyr = context.getMapLayer(self.dest_id)  # TODO: for testing only
+        line = [x.geometry() for x in self._lineLayer.getFeatures()][0].asWkt()
+        poly = [x.geometry() for x in self._polygonLayer.getFeatures()][0].asWkt()
+        result = [x.geometry() for x in vlyr.getFeatures()][0].asWkt()
+        return {self.OUTPUT_LAYER: self.dest_id, "result": result}
 
     def _getInputValues(self, parameters, context):
         self._lineLayer = self.parameterAsVectorLayer(parameters, self.LINE_LAYER, context)
         self._polygonLayer = self.parameterAsVectorLayer(parameters, self.POLYGON_LAYER, context)
-        self._isSelected = self.parameterAsBool(parameters, self.SELECTED, context)
+        self._isSelected = self.parameterAsBool(
+            parameters, self.SELECTED, context
+        )  # TODO use "Selected features only" checkbox instead
         self._isWriteSelected = self.parameterAsBool(parameters, self.WRITE_SELECTED, context)
         self._byLongest = self.parameterAsBool(parameters, self.LONGEST, context)
         self._multi = self.parameterAsBool(parameters, self.MULTI, context)
@@ -424,3 +446,6 @@ class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
     def _markAsRotated(self):
         if self._rotationCheck:
             self._p[self.COLUMN_NAME] = 1
+
+
+# TODO: for the future: a method to make 2 objects (lines, polygons) parallel
