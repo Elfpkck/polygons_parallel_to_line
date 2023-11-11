@@ -78,6 +78,7 @@ class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
         Returns the name of the group this algorithm belongs to. This string
         should be localised.
         """
+        # TODO: add to existing group if possible
         return self.tr("Algorithms for vector layers")
 
     def groupId(self):
@@ -96,7 +97,7 @@ class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
         should provide a basic description about what the algorithm does and the
         parameters and outputs associated with it..
         """
-        return self.tr("Example algorithm short description")
+        return self.tr("Example algorithm short description")  # TODO:
 
     def initAlgorithm(self, config=None):
         self.addParameter(
@@ -155,30 +156,30 @@ class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
 
     def processAlgorithm(self, parameters, context, feedback):
         # pydevd_pycharm.settrace("127.0.0.1", port=53100, stdoutToServer=True, stderrToServer=True)
-        self._operationCounter = 0
+        self._operation_counter = 0
         # self._progress = progress
-        self._getInputValues(parameters, context)
+        self._get_input_values(parameters, context)
 
-        self._createLineSpatialIndex()
-        self._validatePolygonLayer()
-        self._addAttribute()
-        self._linesDict = {x.id(): x for x in self._lineLayer.getFeatures()}
-        self._rotateAndWriteSelectedOrAll()
-        self._deleteAttribute()
+        self._create_line_spatial_index()
+        self._validate_polygon_layer()
+        self._add_attribute()
+        self._lines_dict = {x.id(): x for x in self._line_layer.getFeatures()}
+        self._rotate_and_write_selected_or_all()
+        self._delete_attribute()
         vlyr = context.getMapLayer(self.dest_id)  # TODO: for testing only
-        line = [x.geometry() for x in self._lineLayer.getFeatures()][0].asWkt()
-        poly = [x.geometry() for x in self._polygonLayer.getFeatures()][0].asWkt()
+        line = [x.geometry() for x in self._line_layer.getFeatures()][0].asWkt()
+        poly = [x.geometry() for x in self._polygon_layer.getFeatures()][0].asWkt()
         result = [x.geometry() for x in vlyr.getFeatures()][0].asWkt()
         return {self.OUTPUT_LAYER: self.dest_id, "result": result}
 
-    def _getInputValues(self, parameters, context):
-        self._lineLayer = self.parameterAsVectorLayer(parameters, self.LINE_LAYER, context)
-        self._polygonLayer = self.parameterAsVectorLayer(parameters, self.POLYGON_LAYER, context)
-        self._isSelected = self.parameterAsBool(
+    def _get_input_values(self, parameters, context):
+        self._line_layer = self.parameterAsVectorLayer(parameters, self.LINE_LAYER, context)
+        self._polygon_layer = self.parameterAsVectorLayer(parameters, self.POLYGON_LAYER, context)
+        self._is_selected = self.parameterAsBool(
             parameters, self.SELECTED, context
         )  # TODO use "Selected features only" checkbox instead
-        self._isWriteSelected = self.parameterAsBool(parameters, self.WRITE_SELECTED, context)
-        self._byLongest = self.parameterAsBool(parameters, self.LONGEST, context)
+        self._is_write_selected = self.parameterAsBool(parameters, self.WRITE_SELECTED, context)
+        self._by_longest = self.parameterAsBool(parameters, self.LONGEST, context)
         self._multi = self.parameterAsBool(parameters, self.MULTI, context)
         self._distance = self.parameterAsInt(parameters, self.DISTANCE, context)
         self._angle = self.parameterAsInt(parameters, self.ANGLE, context)
@@ -186,106 +187,106 @@ class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
             parameters,
             self.OUTPUT_LAYER,
             context,
-            self._polygonLayer.fields(),
-            self._polygonLayer.wkbType(),
-            self._polygonLayer.sourceCrs(),
+            self._polygon_layer.fields(),
+            self._polygon_layer.wkbType(),
+            self._polygon_layer.sourceCrs(),
         )
 
-    def _createLineSpatialIndex(self):
+    def _create_line_spatial_index(self):
         self._index = QgsSpatialIndex()
-        for line in self._lineLayer.getFeatures():
+        for line in self._line_layer.getFeatures():
             self._index.insertFeature(line)
 
-    def _validatePolygonLayer(self):
-        self._totalNumber = self._polygonLayer.featureCount()
+    def _validate_polygon_layer(self):
+        self._totalNumber = self._polygon_layer.featureCount()
         if not self._totalNumber:
             raise QgsProcessingException(self.tr("Layer does not have any polygons"))
-        if self._isWriteSelected and not self._isSelected:
+        if self._is_write_selected and not self._is_selected:
             raise QgsProcessingException(
                 self.tr('You have chosen "Save only selected" without ' '"Rotate only selected polygons"')
             )
-        if self._isSelected:
-            self._totalNumber = self._polygonLayer.selectedFeatureCount()
+        if self._is_selected:
+            self._totalNumber = self._polygon_layer.selectedFeatureCount()
             if not self._totalNumber:
                 raise QgsProcessingException(
                     self.tr('You have chosen "Rotate only selected polygons" ' "but there are no selected")
                 )
 
-    def _addAttribute(self):
-        for attr in self._polygonLayer.fields():
+    def _add_attribute(self):
+        for attr in self._polygon_layer.fields():
             if self.COLUMN_NAME == attr.name():
                 if attr.isNumeric():
                     break
                 else:
-                    self._deleteAttribute()
+                    self._delete_attribute()
         else:
-            self._polygonLayer.dataProvider().addAttributes([QgsField(self.COLUMN_NAME, QVariant.Int)])
-            self._polygonLayer.updateFields()
+            self._polygon_layer.dataProvider().addAttributes([QgsField(self.COLUMN_NAME, QVariant.Int)])
+            self._polygon_layer.updateFields()
 
-    def _deleteAttribute(self):
-        for i, attr in enumerate(self._polygonLayer.fields()):
+    def _delete_attribute(self):
+        for i, attr in enumerate(self._polygon_layer.fields()):
             if attr.name() == self.COLUMN_NAME:
-                self._polygonLayer.dataProvider().deleteAttributes([i])
-                self._polygonLayer.updateFields()
+                self._polygon_layer.dataProvider().deleteAttributes([i])
+                self._polygon_layer.updateFields()
 
-    def _rotateAndWriteSelectedOrAll(self):
-        if self._isSelected:
-            self._rotateAndWriteSeleced()
+    def _rotate_and_write_selected_or_all(self):
+        if self._is_selected:
+            self._rotate_and_write_seleced()
         else:
-            polygons = self._polygonLayer.getFeatures()
+            polygons = self._polygon_layer.getFeatures()
             for polygon in polygons:
-                self._rotateAndWritePolygon(polygon)
+                self._rotate_and_write_polygon(polygon)
 
-    def _rotateAndWriteSeleced(self):
-        if self._isWriteSelected:
-            for polygon in self._polygonLayer.selectedFeatures():
-                self._rotateAndWritePolygon(polygon)
+    def _rotate_and_write_seleced(self):
+        if self._is_write_selected:
+            for polygon in self._polygon_layer.selectedFeatures():
+                self._rotate_and_write_polygon(polygon)
         else:
-            selectedPolygonsIds = self._polygonLayer.selectedFeaturesIds()
-            for p in self._polygonLayer.getFeatures():
+            selectedPolygonsIds = self._polygon_layer.selectedFeaturesIds()
+            for p in self._polygon_layer.getFeatures():
                 if p.id() in selectedPolygonsIds:
-                    self._rotateAndWritePolygon(p)
+                    self._rotate_and_write_polygon(p)
                 else:
                     self.sink.addFeature(p, QgsFeatureSink.FastInsert)  # TODO: addFeatures
 
-    def _rotateAndWritePolygon(self, polygon):
-        self._progressBar()
+    def _rotate_and_write_polygon(self, polygon):
+        self._progress_bar()
         self._p = polygon
-        self._initiateRotation()
+        self._initiate_rotation()
         self.sink.addFeature(self._p, QgsFeatureSink.FastInsert)  # TODO: addFeatures
 
-    def _progressBar(self):
-        self._operationCounter += 1
-        currentPercentage = self._operationCounter / self._totalNumber * 100
+    def _progress_bar(self):
+        self._operation_counter += 1
+        currentPercentage = self._operation_counter / self._totalNumber * 100
         # self._progress.setPercentage(round(currentPercentage))
 
-    def _initiateRotation(self):
-        self._getNearestLine()
+    def _initiate_rotation(self):
+        self._get_nearest_line()
         dist = self._nearLine.geometry().distance(self._p.geometry())
         if not self._distance or dist <= self._distance:
-            self._simpleOrMultiGeometry()
+            self._simple_or_multi_geometry()
 
-    def _getNearestLine(self):
+    def _get_nearest_line(self):
         self._center = self._p.geometry().centroid()
         nearId = self._index.nearestNeighbor(self._center.asPoint(), 1)
-        self._nearLine = self._linesDict.get(nearId[0])
+        self._nearLine = self._lines_dict.get(nearId[0])
 
-    def _simpleOrMultiGeometry(self):
+    def _simple_or_multi_geometry(self):
         isMulti = self._p.geometry().isMultipart()
         if isMulti and not self._multi:
             dct = {}
             mPolygonVertexes = self._p.geometry().asMultiPolygon()
             for i, part in enumerate(mPolygonVertexes):
-                minDistance, vertexIndex = self._getNearestVertex(part[0])
+                minDistance, vertexIndex = self._get_nearest_vertex(part[0])
                 dct[(i, vertexIndex)] = minDistance
             i, vertexIndex = min(dct, key=dct.get)
-            self._nearestEdges(mPolygonVertexes[i][0], vertexIndex)
+            self._nearest_edges(mPolygonVertexes[i][0], vertexIndex)
         elif not isMulti:
             polygonVertexes = self._p.geometry().asPolygon()[0][:-1]
-            vertexIndex = self._getNearestVertex(polygonVertexes)[1]
-            self._nearestEdges(polygonVertexes, vertexIndex)
+            vertexIndex = self._get_nearest_vertex(polygonVertexes)[1]
+            self._nearest_edges(polygonVertexes, vertexIndex)
 
-    def _getNearestVertex(self, polygonVertexes):
+    def _get_nearest_vertex(self, polygonVertexes):
         vertexToSegmentDict = {}
         for vertex in polygonVertexes:
             vertexGeom = QgsGeometry.fromPointXY(vertex)
@@ -297,7 +298,7 @@ class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
         vertexIndex = polygonVertexes.index(self._nearestVertex)
         return minDistance, vertexIndex
 
-    def _nearestEdges(self, polygonVertexes, vertexIndex):
+    def _nearest_edges(self, polygonVertexes, vertexIndex):
         # if vertex is first
         if vertexIndex == 0:
             self._line1 = QgsGeometry.fromPolyline([QgsPoint(polygonVertexes[0]), QgsPoint(polygonVertexes[1])])
@@ -317,9 +318,9 @@ class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
 
         line1Azimuth = self._line1.asPolyline()[0].azimuth(self._line1.asPolyline()[1])
         line2Azimuth = self._line2.asPolyline()[0].azimuth(self._line2.asPolyline()[1])
-        self._segmentAzimuth(line1Azimuth, line2Azimuth)
+        self._segment_azimuth(line1Azimuth, line2Azimuth)
 
-    def _segmentAzimuth(self, line1Azimuth, line2Azimuth):
+    def _segment_azimuth(self, line1Azimuth, line2Azimuth):
         nearLineGeom = self._nearLine.geometry()
         if nearLineGeom.isMultipart():
             dct = {}
@@ -343,12 +344,12 @@ class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
             segmStart = nearLineGeom.asPolyline()[indexSegmEnd - 1]
 
         segmentAzimuth = segmStart.azimuth(segmEnd)
-        self._dltAz1 = self._getDeltaAzimuth(segmentAzimuth, line1Azimuth)
-        self._dltAz2 = self._getDeltaAzimuth(segmentAzimuth, line2Azimuth)
+        self._dltAz1 = self._get_delta_azimuth(segmentAzimuth, line1Azimuth)
+        self._dltAz2 = self._get_delta_azimuth(segmentAzimuth, line2Azimuth)
 
         self._azimuth()
 
-    def _getDeltaAzimuth(self, segment, line):
+    def _get_delta_azimuth(self, segment, line):
         if (segment >= 0 and line >= 0) or (segment <= 0 and line <= 0):
             delta = segment - line
             if segment > line and abs(delta) > 90:
@@ -390,16 +391,16 @@ class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
     def _rotate(self, delta1, delta2):
         self._rotationCheck = True
         if delta1 <= self._angle and delta2 <= self._angle:
-            if self._byLongest:
-                self._rotateByLongest(delta1, delta2)
+            if self._by_longest:
+                self._rotate_by_longest(delta1, delta2)
             else:
-                self._rotateNotByLongest(delta1, delta2)
+                self._rotate_not_by_longest(delta1, delta2)
         else:
-            self._othersRotations(delta1, delta2)
+            self._others_rotations(delta1, delta2)
 
-        self._markAsRotated()
+        self._mark_as_rotated()
 
-    def _rotateByLongest(self, delta1, delta2):
+    def _rotate_by_longest(self, delta1, delta2):
         if delta1 <= self._angle and delta2 <= self._angle:
             length1 = self._line1.length()
             length2 = self._line2.length()
@@ -413,11 +414,11 @@ class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
                 geom.rotate(self._dltAz2, self._center.asPoint())
                 self._p.setGeometry(geom)
             elif length1 == length2:
-                self._rotateNotByLongest(delta1, delta2)
+                self._rotate_not_by_longest(delta1, delta2)
             else:
                 self._rotationCheck = False
 
-    def _rotateNotByLongest(self, delta1, delta2):
+    def _rotate_not_by_longest(self, delta1, delta2):
         if delta1 > delta2:
             geom = self._p.geometry()
             geom.rotate(self._dltAz2, self._center.asPoint())
@@ -429,7 +430,7 @@ class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
         else:
             self._rotationCheck = False
 
-    def _othersRotations(self, delta1, delta2):
+    def _others_rotations(self, delta1, delta2):
         if delta1 <= self._angle:
             geom = self._p.geometry()
             geom.rotate(self._dltAz1, self._center.asPoint())
@@ -441,7 +442,7 @@ class PolygonsParallelToLineAlgorithm(QgsProcessingAlgorithm):
         else:
             self._rotationCheck = False
 
-    def _markAsRotated(self):
+    def _mark_as_rotated(self):
         if self._rotationCheck:
             self._p[self.COLUMN_NAME] = 1
 
