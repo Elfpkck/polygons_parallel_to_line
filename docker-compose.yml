@@ -10,4 +10,4 @@ services:
         source: .
         target: /pptl
     environment:
-      - PYTHONPATH=/pptl
+      - PYTHONPATH=/pptl/src

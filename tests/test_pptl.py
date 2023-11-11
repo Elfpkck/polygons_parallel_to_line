@@ -1,15 +1,11 @@
 from qgis._core import (
     QgsFeature,
     QgsGeometry,
-    QgsLineString,
-    QgsPoint,
-    QgsPointXY,
     QgsProcessingOutputLayerDefinition,
     QgsVectorLayer,
-    QgsMultiLineString,
 )
 
-from pptl_algorithm import PolygonsParallelToLineAlgorithm
+from src.pptl_algorithm import PolygonsParallelToLineAlgorithm
 from qgis import processing
 import pytest
 import pydevd_pycharm

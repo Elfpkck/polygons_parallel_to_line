@@ -20,9 +20,6 @@
  *                                                                         *
  ***************************************************************************/
 """
-from __future__ import absolute_import
-
-from builtins import object
 
 __author__ = "Andrii Liekariev"
 __date__ = "2016-03-10"
@@ -32,29 +29,19 @@ __copyright__ = "(C) 2016-2023 by Andrii Liekariev"
 __revision__ = "$Format:%H$"
 
 
-import os.path
-import sys
-import inspect
-
-from qgis.core import QgsApplication
-from .pptl_provider import PolygonsParallelToLineProvider
-
-cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
-
-if cmd_folder not in sys.path:
-    sys.path.insert(0, cmd_folder)
+from qgis.core import QgsProcessingProvider
+from .pptl_algorithm import PolygonsParallelToLineAlgorithm
 
 
-class PolygonsParallelToLinePlugin:
-    def __init__(self):
-        self.provider = None
+class PolygonsParallelToLineProvider(QgsProcessingProvider):
+    def loadAlgorithms(self, *args, **kwargs):
+        self.addAlgorithm(PolygonsParallelToLineAlgorithm())
 
-    def initProcessing(self):
-        self.provider = PolygonsParallelToLineProvider()
-        QgsApplication.processingRegistry().addProvider(self.provider)
+    def id(self, *args, **kwargs):
+        return "pptl"
 
-    def initGui(self):
-        self.initProcessing()
+    def name(self, *args, **kwargs):
+        return self.tr("Polygons parallel to line")
 
-    def unload(self):
-        QgsApplication.processingRegistry().removeProvider(self.provider)
+    def icon(self):
+        return QgsProcessingProvider.icon(self)

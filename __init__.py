@@ -32,12 +32,6 @@ __revision__ = "$Format:%H$"
 
 # noinspection PyPep8Naming
 def classFactory(iface):
-    """Load PolygonsParallelToLine class from file PolygonsParallelToLine.
-
-    :param iface: A QGIS interface instance.
-    :type iface: QgsInterface
-
-    """
-    from .pptl import PolygonsParallelToLinePlugin
+    from .src.pptl import PolygonsParallelToLinePlugin
 
     return PolygonsParallelToLinePlugin()
