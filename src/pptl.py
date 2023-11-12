@@ -194,9 +194,11 @@ class PolygonsParallelToLine:
             self.line2 = QgsGeometry.fromPolyline(
                 [QgsPoint(polygon_vertexes[vertex_index]), QgsPoint(polygon_vertexes[vertex_index - 1])]
             )
-
+        # azimuth() returns 0-180 and 0-(-180) values. 0 - north, 90 - east, 180 - south, -90 - west
+        # not sure about 180 and -180. # TODO: check
         line1_azimuth = self.line1.asPolyline()[0].azimuth(self.line1.asPolyline()[1])
         line2_azimuth = self.line2.asPolyline()[0].azimuth(self.line2.asPolyline()[1])
+        # this 2 azimuth FROM the closest vertex TO next and previous vertexes
         self.segment_azimuth(line1_azimuth, line2_azimuth)
 
     def segment_azimuth(self, line1_azimuth, line2_azimuth):
@@ -222,35 +224,35 @@ class PolygonsParallelToLine:
             segm_end = near_line_geom.asPolyline()[index_segm_end]
             segm_start = near_line_geom.asPolyline()[index_segm_end - 1]
 
-        segment_azimuth = segm_start.azimuth(segm_end)
+        segment_azimuth = segm_start.azimuth(segm_end)  # this azimuth can x or (180 - x)
         self.dlt_az1 = self.get_delta_azimuth(segment_azimuth, line1_azimuth)
         self.dlt_az2 = self.get_delta_azimuth(segment_azimuth, line2_azimuth)
 
         self.azimuth()
 
-    def get_delta_azimuth(self, segment, line):
-        if (segment >= 0 and line >= 0) or (segment <= 0 and line <= 0):
-            delta = segment - line
-            if segment > line and abs(delta) > 90:
+    def get_delta_azimuth(self, segment_azimuth, line_azimuth):
+        if (segment_azimuth >= 0 and line_azimuth >= 0) or (segment_azimuth <= 0 and line_azimuth <= 0):
+            delta = segment_azimuth - line_azimuth
+            if segment_azimuth > line_azimuth and abs(delta) > 90:
                 delta -= 180
-            elif segment < line and abs(delta) > 90:
+            elif segment_azimuth < line_azimuth and abs(delta) > 90:
                 delta += 180
 
-        if 90 >= segment >= 0 >= line:
-            delta = segment + abs(line)
+        if 90 >= segment_azimuth >= 0 >= line_azimuth:
+            delta = segment_azimuth + abs(line_azimuth)
             if delta > 90:
                 delta -= 180
-        elif 90 < segment and line <= 0:
-            delta = segment - line - 180
+        elif 90 < segment_azimuth and line_azimuth <= 0:
+            delta = segment_azimuth - line_azimuth - 180
             if abs(delta) > 90:
                 delta -= 180
 
-        if -90 <= segment <= 0 <= line:
-            delta = segment - line
+        if -90 <= segment_azimuth <= 0 <= line_azimuth:
+            delta = segment_azimuth - line_azimuth
             if abs(delta) > 90:
                 delta += 180
-        elif -90 > segment and line >= 0:
-            delta = segment - line + 180
+        elif -90 > segment_azimuth and line_azimuth >= 0:
+            delta = segment_azimuth - line_azimuth + 180
             if abs(delta) > 90:
                 delta += 180
 
@@ -286,6 +288,7 @@ class PolygonsParallelToLine:
 
             if length1 >= length2:
                 geom = self.p.geometry()
+                # rotate() takes any positive and negative values. positive - clockwise, negative - counterclockwise
                 geom.rotate(self.dlt_az1, self.center.asPoint())
                 self.p.setGeometry(geom)
             elif length1 < length2:
