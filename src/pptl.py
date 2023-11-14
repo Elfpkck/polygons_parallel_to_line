@@ -156,20 +156,20 @@ class PolygonsParallelToLine:
             dct = {}
             m_polygon_vertexes = self.p.geometry().asMultiPolygon()
             for i, part in enumerate(m_polygon_vertexes):
-                min_distance, vertex_index = self.get_nearest_vertex(part[0])
+                min_distance, vertex_index = self.get_nearest_vertex(part[0][:-1])
                 dct[(i, vertex_index)] = min_distance
             i, vertex_index = min(dct, key=dct.get)
-            self.nearest_edges(m_polygon_vertexes[i][0], vertex_index)
+            self.nearest_edges(m_polygon_vertexes[i][0][:-1], vertex_index)
         elif not is_multi:
             polygon_vertexes = self.p.geometry().asPolygon()[0][:-1]
-            vertex_index = self.get_nearest_vertex(polygon_vertexes)[1]
+            _, vertex_index = self.get_nearest_vertex(polygon_vertexes)
             self.nearest_edges(polygon_vertexes, vertex_index)
 
     def get_nearest_vertex(self, polygon_vertexes):
         vertex_to_segment_dict = {}
         for vertex in polygon_vertexes:
             vertex_geom = QgsGeometry.fromPointXY(vertex)
-            vertex_to_segment = vertex_geom.distance(self.near_line.geometry())
+            vertex_to_segment = vertex_geom.distance(self.near_line.geometry())  # float as key? TODO: change?
             vertex_to_segment_dict[vertex_to_segment] = vertex
 
         min_distance = min(vertex_to_segment_dict.keys())
@@ -205,73 +205,53 @@ class PolygonsParallelToLine:
         near_line_geom = self.near_line.geometry()
         if near_line_geom.isMultipart():
             dct = {}
-            min_dists = []
+            min_dists = set()
 
             for line in near_line_geom.asMultiPolyline():
                 l = QgsGeometry.fromPolyline([QgsPoint(x) for x in line])
-                closest_segm_context = l.closestSegmentWithContext(self.nearest_vertex)
-                min_dists.append(closest_segm_context[0])
-                dct[closest_segm_context[0]] = [line, closest_segm_context[-1]]
+                min_dist, _, higher_vertex_index, _ = l.closestSegmentWithContext(self.nearest_vertex)
+                min_dists.add(min_dist)
+                dct[min_dist] = [line, higher_vertex_index]
 
             min_distance = min(min_dists)
-            closest_segment = dct[min_distance][0]
+            line_ = dct[min_distance][0]
             index_segm_end = dct[min_distance][1]
-            segm_end = closest_segment[index_segm_end]
-            segm_start = closest_segment[index_segm_end - 1]
-        else:
+            segm_end = line_[index_segm_end]
+            segm_start = line_[index_segm_end - 1]
+        else:  # TODO: Adjust closestSegmentWithContext in the same way as for multi
             closest_segm_context = near_line_geom.closestSegmentWithContext(self.nearest_vertex)
             index_segm_end = closest_segm_context[-1]
             segm_end = near_line_geom.asPolyline()[index_segm_end]
             segm_start = near_line_geom.asPolyline()[index_segm_end - 1]
 
         segment_azimuth = segm_start.azimuth(segm_end)  # this azimuth can x or (180 - x)
-        self.dlt_az1 = self.get_delta_azimuth(segment_azimuth, line1_azimuth)
-        self.dlt_az2 = self.get_delta_azimuth(segment_azimuth, line2_azimuth)
+        dlt_az1 = self.get_delta_azimuth(segment_azimuth, line1_azimuth)
+        dlt_az2 = self.get_delta_azimuth(segment_azimuth, line2_azimuth)
 
-        self.azimuth()
+        self.rotate(dlt_az1, dlt_az2)
 
     def get_delta_azimuth(self, segment_azimuth, line_azimuth):
-        if (segment_azimuth >= 0 and line_azimuth >= 0) or (segment_azimuth <= 0 and line_azimuth <= 0):
-            delta = segment_azimuth - line_azimuth
-            if segment_azimuth > line_azimuth and abs(delta) > 90:
-                delta -= 180
-            elif segment_azimuth < line_azimuth and abs(delta) > 90:
-                delta += 180
+        # make all azimuths positive (same semicircle directions)
+        if segment_azimuth == -180:
+            segment_azimuth = 180
+        elif segment_azimuth < 0:
+            segment_azimuth += 180
+        if line_azimuth == -180:
+            line_azimuth = 180
+        elif line_azimuth < 0:
+            line_azimuth += 180
+        res = segment_azimuth - line_azimuth
 
-        if 90 >= segment_azimuth >= 0 >= line_azimuth:
-            delta = segment_azimuth + abs(line_azimuth)
-            if delta > 90:
-                delta -= 180
-        elif 90 < segment_azimuth and line_azimuth <= 0:
-            delta = segment_azimuth - line_azimuth - 180
-            if abs(delta) > 90:
-                delta -= 180
-
-        if -90 <= segment_azimuth <= 0 <= line_azimuth:
-            delta = segment_azimuth - line_azimuth
-            if abs(delta) > 90:
-                delta += 180
-        elif -90 > segment_azimuth and line_azimuth >= 0:
-            delta = segment_azimuth - line_azimuth + 180
-            if abs(delta) > 90:
-                delta += 180
-
-        return delta
-
-    def azimuth(self):
-        delta1 = abs(self.dlt_az1)
-        delta2 = abs(self.dlt_az2)
-
-        if abs(self.dlt_az1) > 90:
-            delta1 = 180 - delta1
-        if abs(self.dlt_az2) > 90:
-            delta2 = 180 - delta2
-
-        self.rotate(delta1, delta2)
+        # make abs(delta azimuth) < 90
+        if res > 90:  # TODO: check 90
+            res -= 180
+        elif res < -90:
+            res += 180
+        return res
 
     def rotate(self, delta1, delta2):
         self.rotation_check = True
-        if delta1 <= self.angle and delta2 <= self.angle:
+        if abs(delta1) <= self.angle and abs(delta2) <= self.angle:
             if self.by_longest:
                 self.rotate_by_longest(delta1, delta2)
             else:
@@ -282,44 +262,43 @@ class PolygonsParallelToLine:
         self.mark_as_rotated()
 
     def rotate_by_longest(self, delta1, delta2):
-        if delta1 <= self.angle and delta2 <= self.angle:
-            length1 = self.line1.length()
-            length2 = self.line2.length()
+        length1 = self.line1.length()
+        length2 = self.line2.length()
 
-            if length1 >= length2:
-                geom = self.p.geometry()
-                # rotate() takes any positive and negative values. positive - clockwise, negative - counterclockwise
-                geom.rotate(self.dlt_az1, self.center.asPoint())
-                self.p.setGeometry(geom)
-            elif length1 < length2:
-                geom = self.p.geometry()
-                geom.rotate(self.dlt_az2, self.center.asPoint())
-                self.p.setGeometry(geom)
-            elif length1 == length2:
-                self.rotate_not_by_longest(delta1, delta2)
-            else:
-                self.rotation_check = False
+        if length1 > length2:
+            geom = self.p.geometry()
+            # rotate() takes any positive and negative values. positive - clockwise, negative - counterclockwise
+            geom.rotate(delta1, self.center.asPoint())
+            self.p.setGeometry(geom)
+        elif length1 < length2:
+            geom = self.p.geometry()
+            geom.rotate(delta2, self.center.asPoint())
+            self.p.setGeometry(geom)
+        elif length1 == length2:
+            self.rotate_not_by_longest(delta1, delta2)
+        else:  # TODO: unreachable
+            self.rotation_check = False
 
     def rotate_not_by_longest(self, delta1, delta2):
-        if delta1 > delta2:
+        if abs(delta1) > abs(delta2):
             geom = self.p.geometry()
-            geom.rotate(self.dlt_az2, self.center.asPoint())
+            geom.rotate(delta2, self.center.asPoint())
             self.p.setGeometry(geom)
-        elif delta1 <= delta2:
+        elif abs(delta1) <= abs(delta2):
             geom = self.p.geometry()
-            geom.rotate(self.dlt_az1, self.center.asPoint())
+            geom.rotate(delta1, self.center.asPoint())
             self.p.setGeometry(geom)
         else:
             self.rotation_check = False
 
     def others_rotations(self, delta1, delta2):
-        if delta1 <= self.angle:
+        if abs(delta1) <= self.angle:
             geom = self.p.geometry()
-            geom.rotate(self.dlt_az1, self.center.asPoint())
+            geom.rotate(delta1, self.center.asPoint())
             self.p.setGeometry(geom)
-        elif delta2 <= self.angle:
+        elif (delta2) <= self.angle:
             geom = self.p.geometry()
-            self.p.geometry().rotate(self.dlt_az2, self.center.asPoint())
+            self.p.geometry().rotate(delta2, self.center.asPoint())
             self.p.setGeometry(geom)
         else:
             self.rotation_check = False
