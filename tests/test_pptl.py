@@ -5,7 +5,7 @@ from qgis import processing
 import pytest
 import pydevd_pycharm
 
-# TODO: test  test many segments in line and many polygons (at once)
+# TODO: test  test many segments in line and many polygons (at once); test distance, "_rotated", progress bar
 @pytest.mark.parametrize(
     "line, poly, expected, distance, angle, longest, no_multi",
     [
@@ -132,13 +132,11 @@ def test_pptl_multi_multi(line, poly, expected, distance, angle, longest, no_mul
     params = {
         "LINE_LAYER": v1,
         "POLYGON_LAYER": v2,
-        "SELECTED": False,
-        "WRITE_SELECTED": False,
         "LONGEST": longest,
         "MULTI": no_multi,
         "DISTANCE": distance,
         "ANGLE": angle,
-        "OUTPUT_LAYER": QgsProcessingOutputLayerDefinition("TEMPORARY_OUTPUT"),
+        "OUTPUT": QgsProcessingOutputLayerDefinition("TEMPORARY_OUTPUT"),
     }
     result = processing.run(Algorithm(), params)["result"]
     assert QgsGeometry.compare(
@@ -272,13 +270,11 @@ def test_pptl_simple_line_multi_poly(line, poly, expected, distance, angle, long
     params = {
         "LINE_LAYER": v1,
         "POLYGON_LAYER": v2,
-        "SELECTED": False,
-        "WRITE_SELECTED": False,
         "LONGEST": longest,
         "MULTI": no_multi,
         "DISTANCE": distance,
         "ANGLE": angle,
-        "OUTPUT_LAYER": QgsProcessingOutputLayerDefinition("TEMPORARY_OUTPUT"),
+        "OUTPUT": QgsProcessingOutputLayerDefinition("TEMPORARY_OUTPUT"),
     }
     result = processing.run(Algorithm(), params)["result"]
     assert QgsGeometry.compare(
@@ -365,13 +361,11 @@ def test_pptl_simple_simple(line, poly, expected, distance, angle, longest, no_m
     params = {
         "LINE_LAYER": v1,
         "POLYGON_LAYER": v2,
-        "SELECTED": False,
-        "WRITE_SELECTED": False,
         "LONGEST": longest,
         "MULTI": no_multi,
         "DISTANCE": distance,
         "ANGLE": angle,
-        "OUTPUT_LAYER": QgsProcessingOutputLayerDefinition("TEMPORARY_OUTPUT"),
+        "OUTPUT": QgsProcessingOutputLayerDefinition("TEMPORARY_OUTPUT"),
     }
     result = processing.run(Algorithm(), params)["result"]
     assert QgsGeometry.compare(
@@ -458,13 +452,11 @@ def test_pptl_multi_line_simple_poly(line, poly, expected, distance, angle, long
     params = {
         "LINE_LAYER": v1,
         "POLYGON_LAYER": v2,
-        "SELECTED": False,
-        "WRITE_SELECTED": False,
         "LONGEST": longest,
         "MULTI": no_multi,
         "DISTANCE": distance,
         "ANGLE": angle,
-        "OUTPUT_LAYER": QgsProcessingOutputLayerDefinition("TEMPORARY_OUTPUT"),
+        "OUTPUT": QgsProcessingOutputLayerDefinition("TEMPORARY_OUTPUT"),
     }
     result = processing.run(Algorithm(), params)["result"]
     assert QgsGeometry.compare(

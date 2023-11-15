@@ -43,17 +43,6 @@ from .pptl import Cfg, PolygonsParallelToLine
 
 
 class Algorithm(QgsProcessingAlgorithm):
-    OUTPUT_LAYER = "OUTPUT_LAYER"
-    LINE_LAYER = "LINE_LAYER"
-    POLYGON_LAYER = "POLYGON_LAYER"
-    SELECTED = "SELECTED"
-    WRITE_SELECTED = "WRITE_SELECTED"
-    LONGEST = "LONGEST"
-    MULTI = "MULTI"
-    DISTANCE = "DISTANCE"
-    ANGLE = "ANGLE"
-    COLUMN_NAME = "_rotated"
-
     def tr(self, string):
         return QCoreApplication.translate("Processing", string)
 
@@ -99,7 +88,7 @@ class Algorithm(QgsProcessingAlgorithm):
                 "Output layer with rotated polygons",
             )
         )
-        self.addParameter(  # TODO: polyline doesn't work with poly and multipoly. Check multipolyline
+        self.addParameter(
             QgsProcessingParameterFeatureSource(
                 Cfg.LINE_LAYER, self.tr("Select line layer"), [QgsProcessing.TypeVectorLine]
             )
@@ -108,12 +97,6 @@ class Algorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterFeatureSource(
                 Cfg.POLYGON_LAYER, self.tr("Select polygon layer"), [QgsProcessing.TypeVectorPolygon]
             )
-        )
-        self.addParameter(
-            QgsProcessingParameterBoolean(Cfg.SELECTED, self.tr("Rotate only selected polygons"), defaultValue=False)
-        )
-        self.addParameter(  # TODO: allow to check only when "Rotate only selected polygons" is checked
-            QgsProcessingParameterBoolean(Cfg.WRITE_SELECTED, self.tr("Save only selected"), defaultValue=False)
         )
         self.addParameter(
             QgsProcessingParameterBoolean(
@@ -127,7 +110,7 @@ class Algorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterBoolean(Cfg.MULTI, self.tr("Do not rotate multipolygons"), defaultValue=False)
         )
-        self.addParameter(  # TODO: doesn't work
+        self.addParameter(
             QgsProcessingParameterNumber(
                 Cfg.DISTANCE,
                 self.tr("Distance from line"),
@@ -149,3 +132,6 @@ class Algorithm(QgsProcessingAlgorithm):
 
     def processAlgorithm(self, parameters, context, feedback):
         return PolygonsParallelToLine(self, parameters, context, feedback).run()
+
+
+# TODO: possible to show icon in processing toolbox?

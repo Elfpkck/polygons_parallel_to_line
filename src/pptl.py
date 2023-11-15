@@ -3,7 +3,16 @@ from __future__ import annotations
 import enum
 import os
 from qgis.PyQt.QtCore import QVariant
-from qgis.core import QgsFeatureSink, QgsField, QgsGeometry, QgsPoint, QgsProcessingException, QgsSpatialIndex
+from qgis.core import (
+    QgsFeatureSink,
+    QgsField,
+    QgsGeometry,
+    QgsPoint,
+    QgsProcessingException,
+    QgsSpatialIndex,
+    QgsFields,
+    QgsFeature,
+)
 from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -14,11 +23,9 @@ import pydevd_pycharm
 
 
 class Cfg(str, enum.Enum):
-    OUTPUT_LAYER = "OUTPUT_LAYER"
+    OUTPUT_LAYER = "OUTPUT"
     LINE_LAYER = "LINE_LAYER"
     POLYGON_LAYER = "POLYGON_LAYER"
-    SELECTED = "SELECTED"
-    WRITE_SELECTED = "WRITE_SELECTED"
     LONGEST = "LONGEST"
     MULTI = "MULTI"
     DISTANCE = "DISTANCE"
@@ -38,13 +45,10 @@ class PolygonsParallelToLine:
         self.operation_counter = 0
         # self._progress = progress
         self.get_input_values()
-
         self.create_line_spatial_index()
         self.validate_polygon_layer()
-        self.add_attribute()
         self.lines_dict = {x.id(): x for x in self.line_layer.getFeatures()}
-        self.rotate_and_write_selected_or_all()
-        self.delete_attribute()
+        self.rotate_and_write()
         ret = {Cfg.OUTPUT_LAYER: self.dest_id}
         if os.getenv("PPTL_TEST"):
             output_layer = self.context.getMapLayer(self.dest_id)
@@ -55,21 +59,24 @@ class PolygonsParallelToLine:
 
     def get_input_values(self):
         parameters, context = self.parameters, self.context
-        self.line_layer = self.algo.parameterAsVectorLayer(parameters, Cfg.LINE_LAYER, context)
-        self.polygon_layer = self.algo.parameterAsVectorLayer(parameters, Cfg.POLYGON_LAYER, context)
-        self.is_selected = self.algo.parameterAsBool(
-            parameters, Cfg.SELECTED, context
-        )  # TODO use "Selected features only" checkbox instead
-        self.is_write_selected = self.algo.parameterAsBool(parameters, Cfg.WRITE_SELECTED, context)
+        self.line_layer = self.algo.parameterAsSource(parameters, Cfg.LINE_LAYER, context)
+        self.polygon_layer = self.algo.parameterAsSource(parameters, Cfg.POLYGON_LAYER, context)
         self.by_longest = self.algo.parameterAsBool(parameters, Cfg.LONGEST, context)
         self.multi = self.algo.parameterAsBool(parameters, Cfg.MULTI, context)
-        self.distance = self.algo.parameterAsInt(parameters, Cfg.DISTANCE, context)
-        self.angle = self.algo.parameterAsInt(parameters, Cfg.ANGLE, context)
+        self.distance = self.algo.parameterAsDouble(parameters, Cfg.DISTANCE, context)
+        self.angle = self.algo.parameterAsDouble(parameters, Cfg.ANGLE, context)
+        self.new_fields = new_fields = QgsFields()
+
+        for field in self.polygon_layer.fields():
+            if Cfg.COLUMN_NAME == field.name():
+                continue
+            new_fields.append(field)
+        new_fields.append(QgsField(Cfg.COLUMN_NAME, QVariant.Int))
         (self.sink, self.dest_id) = self.algo.parameterAsSink(
             parameters,
             Cfg.OUTPUT_LAYER,
             context,
-            self.polygon_layer.fields(),
+            new_fields,
             self.polygon_layer.wkbType(),
             self.polygon_layer.sourceCrs(),
         )
@@ -83,58 +90,24 @@ class PolygonsParallelToLine:
         self.total_number = self.polygon_layer.featureCount()
         if not self.total_number:
             raise QgsProcessingException(self.algo.tr("Layer does not have any polygons"))
-        if self.is_write_selected and not self.is_selected:
-            raise QgsProcessingException(
-                self.algo.tr('You have chosen "Save only selected" without ' '"Rotate only selected polygons"')
-            )
-        if self.is_selected:
-            self.total_number = self.polygon_layer.selectedFeatureCount()
-            if not self.total_number:
-                raise QgsProcessingException(
-                    self.algo.tr('You have chosen "Rotate only selected polygons" ' "but there are no selected")
-                )
 
-    def add_attribute(self):
-        for attr in self.polygon_layer.fields():
-            if Cfg.COLUMN_NAME == attr.name():
-                if attr.isNumeric():
-                    break
-
-                self.delete_attribute()
-        else:
-            self.polygon_layer.dataProvider().addAttributes([QgsField(Cfg.COLUMN_NAME, QVariant.Int)])
-            self.polygon_layer.updateFields()
-
-    def delete_attribute(self):
-        for i, attr in enumerate(self.polygon_layer.fields()):
-            if attr.name() == Cfg.COLUMN_NAME:
-                self.polygon_layer.dataProvider().deleteAttributes([i])
-                self.polygon_layer.updateFields()
-
-    def rotate_and_write_selected_or_all(self):
-        if self.is_selected:
-            self.rotate_and_write_selected()
-        else:
-            for polygon in self.polygon_layer.getFeatures():
-                self.rotate_and_write_polygon(polygon)
-
-    def rotate_and_write_selected(self):
-        if self.is_write_selected:
-            for polygon in self.polygon_layer.selectedFeatures():
-                self.rotate_and_write_polygon(polygon)
-        else:
-            selected_polygons_ids = self.polygon_layer.selectedFeaturesIds()
-            for p in self.polygon_layer.getFeatures():
-                if p.id() in selected_polygons_ids:
-                    self.rotate_and_write_polygon(p)
-                else:
-                    self.sink.addFeature(p, QgsFeatureSink.FastInsert)  # TODO: addFeatures
+    def rotate_and_write(self):
+        for polygon in self.polygon_layer.getFeatures():
+            self.rotation_check = False
+            self.rotate_and_write_polygon(polygon)
 
     def rotate_and_write_polygon(self, polygon):
         self.progress_bar()
         self.p = polygon
         self.initiate_rotation()
-        self.sink.addFeature(self.p, QgsFeatureSink.FastInsert)  # TODO: addFeatures
+
+        new_feature = QgsFeature(self.new_fields)
+        new_feature.setGeometry(polygon.geometry())
+        attrs = polygon.attributes()
+        if self.rotation_check:
+            attrs.append(1)
+        new_feature.setAttributes(attrs)
+        self.sink.addFeature(new_feature, QgsFeatureSink.FastInsert)  # TODO: addFeatures
 
     def progress_bar(self):
         self.operation_counter += 1
@@ -249,7 +222,6 @@ class PolygonsParallelToLine:
         return delta_azimuth
 
     def rotate(self, delta1, delta2):
-        self.rotation_check = True
         if abs(delta1) <= self.angle >= abs(delta2):
             if self.by_longest:
                 self.rotate_by_longest(delta1, delta2)
@@ -258,53 +230,34 @@ class PolygonsParallelToLine:
         else:
             self.others_rotations(delta1, delta2)
 
-        self.mark_as_rotated()
+    def _rotate(self, angle: float):
+        """QgsGeometry.rotate() takes any positive and negative values. Positive - rotate clockwise,
+        negative - counterclockwise.
+        """
+        geom = self.p.geometry()
+        geom.rotate(angle, self.center)
+        self.p.setGeometry(geom)
+        self.rotation_check = True
 
     def rotate_by_longest(self, delta1, delta2):
         length1 = self.line1.length()
         length2 = self.line2.length()
 
         if length1 > length2:
-            geom = self.p.geometry()
-            # rotate() takes any positive and negative values. positive - clockwise, negative - counterclockwise
-            geom.rotate(delta1, self.center)
-            self.p.setGeometry(geom)
+            self._rotate(delta1)
         elif length1 < length2:
-            geom = self.p.geometry()
-            geom.rotate(delta2, self.center)
-            self.p.setGeometry(geom)
-        elif length1 == length2:
+            self._rotate(delta2)
+        else:
             self.rotate_not_by_longest(delta1, delta2)
-        else:  # TODO: unreachable
-            self.rotation_check = False
 
     def rotate_not_by_longest(self, delta1, delta2):
-        if abs(delta1) > abs(delta2):
-            geom = self.p.geometry()
-            geom.rotate(delta2, self.center)
-            self.p.setGeometry(geom)
-        elif abs(delta1) <= abs(delta2):
-            geom = self.p.geometry()
-            geom.rotate(delta1, self.center)
-            self.p.setGeometry(geom)
-        else:
-            self.rotation_check = False
+        self._rotate(delta2) if delta1 > delta2 else self._rotate(delta1)
 
     def others_rotations(self, delta1, delta2):
         if abs(delta1) <= self.angle:
-            geom = self.p.geometry()
-            geom.rotate(delta1, self.center)
-            self.p.setGeometry(geom)
+            self._rotate(delta1)
         elif abs(delta2) <= self.angle:
-            geom = self.p.geometry()
-            self.p.geometry().rotate(delta2, self.center)
-            self.p.setGeometry(geom)
-        else:
-            self.rotation_check = False
-
-    def mark_as_rotated(self):
-        if self.rotation_check:
-            self.p[Cfg.COLUMN_NAME] = 1
+            self._rotate(delta2)
 
 
 # TODO: for the future: a method to make 2 objects (lines, polygons) parallel
