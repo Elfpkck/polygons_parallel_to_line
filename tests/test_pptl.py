@@ -5,7 +5,7 @@ from qgis import processing
 import pytest
 import pydevd_pycharm
 
-# TODO: test  test many segments in line and many polygons (at once); test distance, "_rotated", progress bar
+# TODO: test  test many segments in line and many polygons (at once); test distance, "_rotated"
 @pytest.mark.parametrize(
     "line, poly, expected, distance, angle, longest, no_multi",
     [

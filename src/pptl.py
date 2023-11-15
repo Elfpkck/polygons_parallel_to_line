@@ -43,7 +43,6 @@ class PolygonsParallelToLine:
     def run(self) -> dict[str, Any]:
         # pydevd_pycharm.settrace("127.0.0.1", port=53100, stdoutToServer=True, stderrToServer=True)
         self.operation_counter = 0
-        # self._progress = progress
         self.get_input_values()
         self.create_line_spatial_index()
         self.validate_polygon_layer()
@@ -92,12 +91,16 @@ class PolygonsParallelToLine:
             raise QgsProcessingException(self.algo.tr("Layer does not have any polygons"))
 
     def rotate_and_write(self):
-        for polygon in self.polygon_layer.getFeatures():
+        total = 100.0 / self.total_number
+        for i, polygon in enumerate(self.polygon_layer.getFeatures(), start=1):
+            if self.feedback.isCanceled():
+                break
+
             self.rotation_check = False
             self.rotate_and_write_polygon(polygon)
+            self.feedback.setProgress(int(i * total))
 
     def rotate_and_write_polygon(self, polygon):
-        self.progress_bar()
         self.p = polygon
         self.initiate_rotation()
 
@@ -108,11 +111,6 @@ class PolygonsParallelToLine:
             attrs.append(1)
         new_feature.setAttributes(attrs)
         self.sink.addFeature(new_feature, QgsFeatureSink.FastInsert)  # TODO: addFeatures
-
-    def progress_bar(self):
-        self.operation_counter += 1
-        current_percentage = self.operation_counter / self.total_number * 100
-        # self._progress.setPercentage(round(current_percentage))
 
     def initiate_rotation(self):
         self.get_nearest_line()
