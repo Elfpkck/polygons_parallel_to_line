@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import enum
+import os
 from qgis.PyQt.QtCore import QVariant
 from qgis.core import QgsFeatureSink, QgsField, QgsGeometry, QgsPoint, QgsProcessingException, QgsSpatialIndex
 from typing import Any, TYPE_CHECKING
@@ -44,11 +45,13 @@ class PolygonsParallelToLine:
         self.lines_dict = {x.id(): x for x in self.line_layer.getFeatures()}
         self.rotate_and_write_selected_or_all()
         self.delete_attribute()
-        vlyr = self.context.getMapLayer(self.dest_id)  # TODO: for testing only
-        line = [x.geometry() for x in self.line_layer.getFeatures()][0].asWkt()
-        poly = [x.geometry() for x in self.polygon_layer.getFeatures()][0].asWkt()
-        result = [x.geometry() for x in vlyr.getFeatures()][0].asWkt()
-        return {Cfg.OUTPUT_LAYER: self.dest_id, "result": result}
+        ret = {Cfg.OUTPUT_LAYER: self.dest_id}
+        if os.getenv("PPTL_TEST"):
+            output_layer = self.context.getMapLayer(self.dest_id)
+            line = [x.geometry() for x in self.line_layer.getFeatures()][0].asWkt()  # TODO: remove
+            poly = [x.geometry() for x in self.polygon_layer.getFeatures()][0].asWkt()  # TODO: remove
+            ret["result"] = [x.geometry() for x in output_layer.getFeatures()][0].asWkt()
+        return ret
 
     def get_input_values(self):
         parameters, context = self.parameters, self.context
@@ -72,9 +75,9 @@ class PolygonsParallelToLine:
         )
 
     def create_line_spatial_index(self):
-        self.index = QgsSpatialIndex()
-        for line in self.line_layer.getFeatures():
-            self.index.insertFeature(line)
+        spatial_index = QgsSpatialIndex()
+        spatial_index.addFeatures(self.line_layer.getFeatures())
+        self.index = spatial_index
 
     def validate_polygon_layer(self):
         self.total_number = self.polygon_layer.featureCount()
@@ -112,8 +115,7 @@ class PolygonsParallelToLine:
         if self.is_selected:
             self.rotate_and_write_selected()
         else:
-            polygons = self.polygon_layer.getFeatures()
-            for polygon in polygons:
+            for polygon in self.polygon_layer.getFeatures():
                 self.rotate_and_write_polygon(polygon)
 
     def rotate_and_write_selected(self):
@@ -141,14 +143,14 @@ class PolygonsParallelToLine:
 
     def initiate_rotation(self):
         self.get_nearest_line()
-        dist = self.near_line.geometry().distance(self.p.geometry())
+        dist = self.nearest_line.geometry().distance(self.p.geometry())
         if not self.distance or dist <= self.distance:
             self.simple_or_multi_geometry()
 
     def get_nearest_line(self):
-        self.center = self.p.geometry().centroid()
-        near_id = self.index.nearestNeighbor(self.center.asPoint(), 1)
-        self.near_line = self.lines_dict.get(near_id[0])
+        self.center = self.p.geometry().centroid().asPoint()
+        near_id = self.index.nearestNeighbor(self.center, 1)
+        self.nearest_line = self.lines_dict.get(near_id[0])
 
     def simple_or_multi_geometry(self):
         is_multi = self.p.geometry().isMultipart()
@@ -169,7 +171,7 @@ class PolygonsParallelToLine:
         vertex_to_segment_dict = {}
         for vertex in polygon_vertexes:
             vertex_geom = QgsGeometry.fromPointXY(vertex)
-            vertex_to_segment = vertex_geom.distance(self.near_line.geometry())  # float as key? TODO: change?
+            vertex_to_segment = vertex_geom.distance(self.nearest_line.geometry())  # float as key? TODO: change?
             vertex_to_segment_dict[vertex_to_segment] = vertex
 
         min_distance = min(vertex_to_segment_dict.keys())
@@ -178,13 +180,10 @@ class PolygonsParallelToLine:
         return min_distance, vertex_index
 
     def nearest_edges(self, polygon_vertexes, vertex_index):
-        # if vertex is first
-        if vertex_index == 0:
+        if vertex_index == 0:  # if vertex is first
             self.line1 = QgsGeometry.fromPolyline([QgsPoint(polygon_vertexes[0]), QgsPoint(polygon_vertexes[1])])
             self.line2 = QgsGeometry.fromPolyline([QgsPoint(polygon_vertexes[0]), QgsPoint(polygon_vertexes[-1])])
-
-        # if vertex is last
-        elif vertex_index == len(polygon_vertexes) - 1:
+        elif vertex_index == len(polygon_vertexes) - 1:  # if vertex is last
             self.line1 = QgsGeometry.fromPolyline([QgsPoint(polygon_vertexes[-1]), QgsPoint(polygon_vertexes[0])])
             self.line2 = QgsGeometry.fromPolyline([QgsPoint(polygon_vertexes[-1]), QgsPoint(polygon_vertexes[-2])])
         else:
@@ -195,63 +194,63 @@ class PolygonsParallelToLine:
                 [QgsPoint(polygon_vertexes[vertex_index]), QgsPoint(polygon_vertexes[vertex_index - 1])]
             )
         # azimuth() returns 0-180 and 0-(-180) values. 0 - north, 90 - east, 180 - south, -90 - west
-        # not sure about 180 and -180. # TODO: check
         line1_azimuth = self.line1.asPolyline()[0].azimuth(self.line1.asPolyline()[1])
         line2_azimuth = self.line2.asPolyline()[0].azimuth(self.line2.asPolyline()[1])
-        # this 2 azimuth FROM the closest vertex TO next and previous vertexes
+        # this 2 azimuth FROM the closest vertex TO the next and previous vertexes
         self.segment_azimuth(line1_azimuth, line2_azimuth)
 
     def segment_azimuth(self, line1_azimuth, line2_azimuth):
-        near_line_geom = self.near_line.geometry()
-        if near_line_geom.isMultipart():
+        nearest_line_geom = self.nearest_line.geometry()
+        if nearest_line_geom.isMultipart():
             dct = {}
             min_dists = set()
 
-            for line in near_line_geom.asMultiPolyline():
+            for line in nearest_line_geom.asMultiPolyline():
                 l = QgsGeometry.fromPolyline([QgsPoint(x) for x in line])
-                min_dist, _, higher_vertex_index, _ = l.closestSegmentWithContext(self.nearest_vertex)
+                min_dist, _, greater_vertex_index, _ = l.closestSegmentWithContext(self.nearest_vertex)
                 min_dists.add(min_dist)
-                dct[min_dist] = [line, higher_vertex_index]
+                dct[min_dist] = [line, greater_vertex_index]
 
             min_distance = min(min_dists)
             line_ = dct[min_distance][0]
             index_segm_end = dct[min_distance][1]
             segm_end = line_[index_segm_end]
             segm_start = line_[index_segm_end - 1]
-        else:  # TODO: Adjust closestSegmentWithContext in the same way as for multi
-            closest_segm_context = near_line_geom.closestSegmentWithContext(self.nearest_vertex)
-            index_segm_end = closest_segm_context[-1]
-            segm_end = near_line_geom.asPolyline()[index_segm_end]
-            segm_start = near_line_geom.asPolyline()[index_segm_end - 1]
+        else:
+            min_dist, _, greater_vertex_index, _ = nearest_line_geom.closestSegmentWithContext(self.nearest_vertex)
+            segm_end = nearest_line_geom.asPolyline()[greater_vertex_index]
+            segm_start = nearest_line_geom.asPolyline()[greater_vertex_index - 1]
 
-        segment_azimuth = segm_start.azimuth(segm_end)  # this azimuth can x or (180 - x)
+        segment_azimuth = segm_start.azimuth(segm_end)  # this azimuth can be x or (180 - x)
         dlt_az1 = self.get_delta_azimuth(segment_azimuth, line1_azimuth)
         dlt_az2 = self.get_delta_azimuth(segment_azimuth, line2_azimuth)
 
         self.rotate(dlt_az1, dlt_az2)
 
+    @staticmethod
+    def make_azimuth_positive(azimuth):
+        """Make azimuth positive (same semicircle directions)"""
+        if azimuth == -180:
+            azimuth = 180
+        elif azimuth < 0:
+            azimuth += 180
+        return azimuth
+
     def get_delta_azimuth(self, segment_azimuth, line_azimuth):
-        # make all azimuths positive (same semicircle directions)
-        if segment_azimuth == -180:
-            segment_azimuth = 180
-        elif segment_azimuth < 0:
-            segment_azimuth += 180
-        if line_azimuth == -180:
-            line_azimuth = 180
-        elif line_azimuth < 0:
-            line_azimuth += 180
-        res = segment_azimuth - line_azimuth
+        segment_azimuth = self.make_azimuth_positive(segment_azimuth)
+        line_azimuth = self.make_azimuth_positive(line_azimuth)
+        delta_azimuth = segment_azimuth - line_azimuth
 
         # make abs(delta azimuth) < 90
-        if res > 90:  # TODO: check 90
-            res -= 180
-        elif res < -90:
-            res += 180
-        return res
+        if delta_azimuth > 90:  # TODO: check 90
+            delta_azimuth -= 180
+        elif delta_azimuth < -90:
+            delta_azimuth += 180
+        return delta_azimuth
 
     def rotate(self, delta1, delta2):
         self.rotation_check = True
-        if abs(delta1) <= self.angle and abs(delta2) <= self.angle:
+        if abs(delta1) <= self.angle >= abs(delta2):
             if self.by_longest:
                 self.rotate_by_longest(delta1, delta2)
             else:
@@ -268,11 +267,11 @@ class PolygonsParallelToLine:
         if length1 > length2:
             geom = self.p.geometry()
             # rotate() takes any positive and negative values. positive - clockwise, negative - counterclockwise
-            geom.rotate(delta1, self.center.asPoint())
+            geom.rotate(delta1, self.center)
             self.p.setGeometry(geom)
         elif length1 < length2:
             geom = self.p.geometry()
-            geom.rotate(delta2, self.center.asPoint())
+            geom.rotate(delta2, self.center)
             self.p.setGeometry(geom)
         elif length1 == length2:
             self.rotate_not_by_longest(delta1, delta2)
@@ -282,11 +281,11 @@ class PolygonsParallelToLine:
     def rotate_not_by_longest(self, delta1, delta2):
         if abs(delta1) > abs(delta2):
             geom = self.p.geometry()
-            geom.rotate(delta2, self.center.asPoint())
+            geom.rotate(delta2, self.center)
             self.p.setGeometry(geom)
         elif abs(delta1) <= abs(delta2):
             geom = self.p.geometry()
-            geom.rotate(delta1, self.center.asPoint())
+            geom.rotate(delta1, self.center)
             self.p.setGeometry(geom)
         else:
             self.rotation_check = False
@@ -294,11 +293,11 @@ class PolygonsParallelToLine:
     def others_rotations(self, delta1, delta2):
         if abs(delta1) <= self.angle:
             geom = self.p.geometry()
-            geom.rotate(delta1, self.center.asPoint())
+            geom.rotate(delta1, self.center)
             self.p.setGeometry(geom)
-        elif (delta2) <= self.angle:
+        elif abs(delta2) <= self.angle:
             geom = self.p.geometry()
-            self.p.geometry().rotate(delta2, self.center.asPoint())
+            self.p.geometry().rotate(delta2, self.center)
             self.p.setGeometry(geom)
         else:
             self.rotation_check = False

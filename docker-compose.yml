@@ -10,4 +10,5 @@ services:
         source: .
         target: /pptl
     environment:
-      - PYTHONPATH=/pptl/src
+      - PYTHONPATH=/pptl
+      - PPTL_TEST=1
