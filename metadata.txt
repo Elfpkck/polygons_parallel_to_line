@@ -2,7 +2,7 @@
 name=Polygons Parallel to Line
 qgisMinimumVersion=3.0  # TODO: check
 description=This plugin rotates polygons parallel to line
-version=0.3
+version=1.0
 author=Andrii Liekariev
 email=elfpkck@gmail.com
 hasProcessingProvider=yes
@@ -12,7 +12,10 @@ about=This plugin rotates all or only selected polygons within chosen distance (
 tracker=https://github.com/Elfpkck/polygons_parallel_to_line/issues
 repository=https://github.com/Elfpkck/polygons_parallel_to_line
 
-changelog=0.3
+changelog=
+    1.0
+        - TODO
+    0.3
         - migrated to Processing algorithms; full refactoring
         - much faster
         - possibility to write to the new layer all or only selected polygons
