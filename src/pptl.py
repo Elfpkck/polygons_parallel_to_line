@@ -76,7 +76,7 @@ class PolygonsParallelToLine:
                 continue
             new_fields.append(field)
         new_fields.append(QgsField(Cfg.COLUMN_NAME, QVariant.Int))
-        (self.sink, self.dest_id) = self.algo.parameterAsSink(
+        self.sink, self.dest_id = self.algo.parameterAsSink(
             parameters,
             Cfg.OUTPUT_LAYER,
             context,
@@ -97,15 +97,18 @@ class PolygonsParallelToLine:
 
     def rotate_and_write(self):
         total = 100.0 / self.total_number
+        processed_polygons = []
         for i, polygon in enumerate(self.polygon_layer.getFeatures(), start=1):
             if self.feedback.isCanceled():
                 break
 
             self.rotation_check = False
-            self.rotate_and_write_polygon(polygon)
+            processed_polygons.append(self.get_rotated_polygon(polygon))
             self.feedback.setProgress(int(i * total))
 
-    def rotate_and_write_polygon(self, polygon):
+        self.sink.addFeatures(processed_polygons, QgsFeatureSink.FastInsert)
+
+    def get_rotated_polygon(self, polygon):
         self.p = polygon
         self.initiate_rotation()
 
@@ -115,7 +118,7 @@ class PolygonsParallelToLine:
         if self.rotation_check:
             attrs.append(1)
         new_feature.setAttributes(attrs)
-        self.sink.addFeature(new_feature, QgsFeatureSink.FastInsert)  # TODO: addFeatures
+        return new_feature
 
     def initiate_rotation(self):
         self.get_nearest_line()

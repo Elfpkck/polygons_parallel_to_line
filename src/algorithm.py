@@ -18,7 +18,7 @@
  *                                                                         *
  ***************************************************************************/
 """
-
+from __future__ import annotations
 
 __author__ = "Andrii Liekariev"
 __date__ = "2016-03-10"
@@ -27,7 +27,8 @@ __copyright__ = "(C) 2016-2023 by Andrii Liekariev"
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = "$Format:%H$"
 
-from typing import Optional
+
+from typing import Any, Optional, TYPE_CHECKING
 
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (
@@ -42,13 +43,16 @@ from qgis.core import (
 
 from .pptl import Cfg, PolygonsParallelToLine
 
+if TYPE_CHECKING:
+    from qgis.core import QgsProcessingContext, QgsProcessingFeedback
+
 
 class Algorithm(QgsProcessingAlgorithm):
     def tr(self, string):
         return QCoreApplication.translate("Processing", string)
 
     def createInstance(self):
-        return Algorithm()
+        return self.__class__()
 
     def name(self):
         return "pptl_algo"
@@ -131,7 +135,9 @@ class Algorithm(QgsProcessingAlgorithm):
             )
         )
 
-    def processAlgorithm(self, parameters, context, feedback):
+    def processAlgorithm(
+        self, parameters: dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
+    ):
         return PolygonsParallelToLine(self, parameters, context, feedback).run()
 
 
