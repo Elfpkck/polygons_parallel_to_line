@@ -85,7 +85,7 @@ class Algorithm(QgsProcessingAlgorithm):
             )
         )
         self.addParameter(
-            QgsProcessingParameterBoolean(Cfg.MULTI, self.tr("Do not rotate multipolygons"), defaultValue=False)
+            QgsProcessingParameterBoolean(Cfg.NO_MULTI, self.tr("Do not rotate multipolygons"), defaultValue=False)
         )
         self.addParameter(
             QgsProcessingParameterNumber(
