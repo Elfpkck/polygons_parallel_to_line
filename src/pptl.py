@@ -16,7 +16,7 @@ from qgis.core import (
 from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from qgis.core import QgsProcessingAlgorithm
+    from qgis.core import QgsProcessingAlgorithm, QgsProcessingContext, QgsProcessingFeedback
 
 
 import pydevd_pycharm
@@ -34,7 +34,13 @@ class Cfg(str, enum.Enum):
 
 
 class PolygonsParallelToLine:
-    def __init__(self, algo: QgsProcessingAlgorithm, parameters, context, feedback):
+    def __init__(
+        self,
+        algo: QgsProcessingAlgorithm,
+        parameters: dict[str, Any],
+        context: QgsProcessingContext,
+        feedback: QgsProcessingFeedback,
+    ):
         self.algo = algo
         self.parameters = parameters
         self.context = context
@@ -42,7 +48,6 @@ class PolygonsParallelToLine:
 
     def run(self) -> dict[str, Any]:
         # pydevd_pycharm.settrace("127.0.0.1", port=53100, stdoutToServer=True, stderrToServer=True)
-        self.operation_counter = 0
         self.get_input_values()
         self.create_line_spatial_index()
         self.validate_polygon_layer()

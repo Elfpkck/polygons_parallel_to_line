@@ -27,6 +27,7 @@ __copyright__ = "(C) 2016-2023 by Andrii Liekariev"
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = "$Format:%H$"
 
+from typing import Optional
 
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (
@@ -81,7 +82,7 @@ class Algorithm(QgsProcessingAlgorithm):
         """
         return self.tr("Example algorithm short description")  # TODO:
 
-    def initAlgorithm(self, config=None):
+    def initAlgorithm(self, config: Optional[dict] = None):
         self.addParameter(
             QgsProcessingParameterFeatureSink(
                 Cfg.OUTPUT_LAYER,
