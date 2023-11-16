@@ -1,27 +1,36 @@
 from __future__ import annotations
 
+import os
 from typing import Any, Optional, TYPE_CHECKING
 
-from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtCore import QVariant
 from qgis.core import (
     QgsProcessing,
     QgsProcessingAlgorithm,
     QgsProcessingParameterBoolean,
     QgsProcessingParameterFeatureSource,
     QgsProcessingParameterNumber,
-    QgsProcessingException,
     QgsProcessingParameterFeatureSink,
+    QgsFields,
+    QgsField,
 )
 
-from .pptl import Cfg, PolygonsParallelToLine
+from .pptl import PolygonsParallelToLine, Params
+from .helpers import tr
 
 if TYPE_CHECKING:
     from qgis.core import QgsProcessingContext, QgsProcessingFeedback
 
 
 class Algorithm(QgsProcessingAlgorithm):
-    def tr(self, string):
-        return QCoreApplication.translate("Processing", string)
+    OUTPUT_LAYER = "OUTPUT"
+    LINE_LAYER = "LINE_LAYER"
+    POLYGON_LAYER = "POLYGON_LAYER"
+    LONGEST = "LONGEST"
+    NO_MULTI = "NO_MULTI"
+    DISTANCE = "DISTANCE"
+    ANGLE = "ANGLE"
+    COLUMN_NAME = "_rotated"
 
     def createInstance(self):
         return self.__class__()
@@ -30,7 +39,7 @@ class Algorithm(QgsProcessingAlgorithm):
         return "pptl_algo"
 
     def displayName(self):
-        return self.tr("Polygons parallel to line")
+        return tr("Polygons parallel to line")
 
     def group(self):
         """
@@ -38,7 +47,7 @@ class Algorithm(QgsProcessingAlgorithm):
         should be localised.
         """
         # TODO: add to existing group if possible
-        return self.tr("Algorithms for vector layers")
+        return tr("Algorithms for vector layers")
 
     def groupId(self):
         """
@@ -56,41 +65,39 @@ class Algorithm(QgsProcessingAlgorithm):
         should provide a basic description about what the algorithm does and the
         parameters and outputs associated with it..
         """
-        return self.tr("Example algorithm short description")  # TODO:
+        return tr("Example algorithm short description")  # TODO:
 
     def initAlgorithm(self, config: Optional[dict] = None):
         self.addParameter(
             QgsProcessingParameterFeatureSink(
-                Cfg.OUTPUT_LAYER,
+                self.OUTPUT_LAYER,
                 "Output layer with rotated polygons",
             )
         )
         self.addParameter(
             QgsProcessingParameterFeatureSource(
-                Cfg.LINE_LAYER, self.tr("Select line layer"), [QgsProcessing.TypeVectorLine]
+                self.LINE_LAYER, tr("Select line layer"), [QgsProcessing.TypeVectorLine]
             )
         )
         self.addParameter(
             QgsProcessingParameterFeatureSource(
-                Cfg.POLYGON_LAYER, self.tr("Select polygon layer"), [QgsProcessing.TypeVectorPolygon]
+                self.POLYGON_LAYER, tr("Select polygon layer"), [QgsProcessing.TypeVectorPolygon]
             )
         )
         self.addParameter(
             QgsProcessingParameterBoolean(
-                Cfg.LONGEST,
-                self.tr(
-                    "Rotate by longest edge if both angles between " "polygon edges and line segment <= 'Angle value'"
-                ),
+                self.LONGEST,
+                tr("Rotate by longest edge if both angles between " "polygon edges and line segment <= 'Angle value'"),
                 defaultValue=False,
             )
         )
         self.addParameter(
-            QgsProcessingParameterBoolean(Cfg.NO_MULTI, self.tr("Do not rotate multipolygons"), defaultValue=False)
+            QgsProcessingParameterBoolean(self.NO_MULTI, tr("Do not rotate multipolygons"), defaultValue=False)
         )
         self.addParameter(
             QgsProcessingParameterNumber(
-                Cfg.DISTANCE,
-                self.tr("Distance from line"),
+                self.DISTANCE,
+                tr("Distance from line"),
                 type=QgsProcessingParameterNumber.Double,
                 minValue=0.0,
                 defaultValue=0.0,
@@ -98,8 +105,8 @@ class Algorithm(QgsProcessingAlgorithm):
         )
         self.addParameter(
             QgsProcessingParameterNumber(
-                Cfg.ANGLE,
-                self.tr("Angle value"),
+                self.ANGLE,
+                tr("Angle value"),
                 type=QgsProcessingParameterNumber.Double,
                 minValue=0.0,
                 maxValue=89.9,
@@ -110,7 +117,41 @@ class Algorithm(QgsProcessingAlgorithm):
     def processAlgorithm(
         self, parameters: dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ):
-        return PolygonsParallelToLine(self, parameters, context, feedback).run()
+        new_fields = QgsFields()
+        polygon_layer = self.parameterAsSource(parameters, self.POLYGON_LAYER, context)
+        for field in polygon_layer.fields():
+            if self.COLUMN_NAME == field.name():
+                continue
+            new_fields.append(field)
+        new_fields.append(QgsField(self.COLUMN_NAME, QVariant.Int))
+        sink, dest_id = self.parameterAsSink(
+            parameters,
+            self.OUTPUT_LAYER,
+            context,
+            new_fields,
+            polygon_layer.wkbType(),
+            polygon_layer.sourceCrs(),
+        )
+        params = Params(
+            line_layer=self.parameterAsSource(parameters, self.LINE_LAYER, context),
+            polygon_layer=polygon_layer,
+            by_longest=self.parameterAsBool(parameters, self.LONGEST, context),
+            no_multi=self.parameterAsBool(parameters, self.NO_MULTI, context),
+            distance=self.parameterAsDouble(parameters, self.DISTANCE, context),
+            angle=self.parameterAsDouble(parameters, self.ANGLE, context),
+            fields=new_fields,
+            sink=sink,
+        )
+        PolygonsParallelToLine(feedback, params).run()
+
+        ret = {self.OUTPUT_LAYER: dest_id}
+        if os.getenv("PPTL_TEST"):  # for testing purposes
+            output_layer = context.getMapLayer(dest_id)
+            line = [x.geometry() for x in params.line_layer.getFeatures()][0].asWkt()  # TODO: remove
+            poly = [x.geometry() for x in polygon_layer.getFeatures()][0].asWkt()  # TODO: remove
+            ret["result"] = [x.geometry() for x in output_layer.getFeatures()][0].asWkt()
+
+        return ret
 
 
 # TODO: possible to show icon in processing toolbox?

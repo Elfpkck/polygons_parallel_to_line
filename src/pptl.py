@@ -1,110 +1,101 @@
 from __future__ import annotations
 
-import enum
-import os
-from qgis.PyQt.QtCore import QVariant
-from qgis.core import QgsFeatureSink, QgsField, QgsFields, QgsProcessingException, QgsSpatialIndex
+import dataclasses
+from qgis.core import QgsFeatureSink, QgsFields, QgsProcessingException, QgsFeature
 from typing import Any, TYPE_CHECKING
 
 from .rotator import Rotator
+from .polygon import Polygon
+from .line import LineLayer
+from .helpers import tr
 
 if TYPE_CHECKING:
-    from qgis.core import QgsProcessingAlgorithm, QgsProcessingContext, QgsProcessingFeedback
+    from qgis.core import QgsProcessingFeedback
 
 
-class Cfg(str, enum.Enum):
-    OUTPUT_LAYER = "OUTPUT"
-    LINE_LAYER = "LINE_LAYER"
-    POLYGON_LAYER = "POLYGON_LAYER"
-    LONGEST = "LONGEST"
-    NO_MULTI = "NO_MULTI"
-    DISTANCE = "DISTANCE"
-    ANGLE = "ANGLE"
-    COLUMN_NAME = "_rotated"
+@dataclasses.dataclass
+class Params:
+    """Input parameters for the algorithm."""
+
+    line_layer: Any
+    polygon_layer: Any
+    by_longest: bool
+    no_multi: bool
+    distance: float
+    angle: float
+    fields: QgsFields
+    sink: QgsFeatureSink
 
 
 class PolygonsParallelToLine:
-    def __init__(
-        self,
-        algo: QgsProcessingAlgorithm,
-        parameters: dict[str, Any],
-        context: QgsProcessingContext,
-        feedback: QgsProcessingFeedback,
-    ):
-        self.algo = algo
-        self.parameters = parameters
-        self.context = context
+    def __init__(self, feedback: QgsProcessingFeedback, params: Params):
         self.feedback = feedback
+        self.params = params
+        self.total_number = self.params.polygon_layer.featureCount()
+        self.line_layer = LineLayer(self.params.line_layer)
+        self.rotator = Rotator()
 
-    def run(self) -> dict[str, Any]:
+    def run(self) -> None:
         # pydevd_pycharm.settrace("127.0.0.1", port=53100, stdoutToServer=True, stderrToServer=True)
-        self.get_input_values()
-        self.create_line_spatial_index()
-        self.validate_polygon_layer()
-        self.lines_dict = {x.id(): x for x in self.line_layer.getFeatures()}
-        self.rotate_and_write()
-        ret = {Cfg.OUTPUT_LAYER: self.dest_id}
-        if os.getenv("PPTL_TEST"):
-            output_layer = self.context.getMapLayer(self.dest_id)
-            line = [x.geometry() for x in self.line_layer.getFeatures()][0].asWkt()  # TODO: remove
-            poly = [x.geometry() for x in self.polygon_layer.getFeatures()][0].asWkt()  # TODO: remove
-            ret["result"] = [x.geometry() for x in output_layer.getFeatures()][0].asWkt()
-        return ret
+        self._validate_polygon_layer()
+        self._rotate_and_write()
 
-    def get_input_values(self):
-        parameters, context = self.parameters, self.context
-        self.line_layer = self.algo.parameterAsSource(parameters, Cfg.LINE_LAYER, context)
-        self.polygon_layer = self.algo.parameterAsSource(parameters, Cfg.POLYGON_LAYER, context)
-        self.by_longest = self.algo.parameterAsBool(parameters, Cfg.LONGEST, context)
-        self.no_multi = self.algo.parameterAsBool(parameters, Cfg.NO_MULTI, context)
-        self.distance = self.algo.parameterAsDouble(parameters, Cfg.DISTANCE, context)
-        self.angle = self.algo.parameterAsDouble(parameters, Cfg.ANGLE, context)
-        self.new_fields = new_fields = QgsFields()
-
-        for field in self.polygon_layer.fields():
-            if Cfg.COLUMN_NAME == field.name():
-                continue
-            new_fields.append(field)
-        new_fields.append(QgsField(Cfg.COLUMN_NAME, QVariant.Int))
-        self.sink, self.dest_id = self.algo.parameterAsSink(
-            parameters,
-            Cfg.OUTPUT_LAYER,
-            context,
-            new_fields,
-            self.polygon_layer.wkbType(),
-            self.polygon_layer.sourceCrs(),
-        )
-
-    def create_line_spatial_index(self):
-        spatial_index = QgsSpatialIndex()
-        spatial_index.addFeatures(self.line_layer.getFeatures())
-        self.index = spatial_index
-
-    def validate_polygon_layer(self):
-        self.total_number = self.polygon_layer.featureCount()
+    def _validate_polygon_layer(self):
         if not self.total_number:
-            raise QgsProcessingException(self.algo.tr("Layer does not have any polygons"))
+            raise QgsProcessingException(tr("Layer does not have any polygons"))
 
-    def rotate_and_write(self):
+    def _rotate_and_write(self):
         total = 100.0 / self.total_number
         processed_polygons = []
-        for i, polygon in enumerate(self.polygon_layer.getFeatures(), start=1):
+
+        for i, polygon in enumerate(self.params.polygon_layer.getFeatures(), start=1):
             if self.feedback.isCanceled():
                 break
-            rotator = Rotator(
-                polygon,
-                self.lines_dict,
-                self.index,
-                self.new_fields,
-                self.by_longest,
-                self.no_multi,
-                self.distance,
-                self.angle,
-            )
-            processed_polygons.append(rotator.get_rotated_polygon())
+            # TODO: control rotator lifecycle here?
+            # TODO: create some new class for polygon and line? maybe instead of rotator?
+            processed_polygons.append(self._lifecycle(polygon))
             self.feedback.setProgress(int(i * total))
 
-        self.sink.addFeatures(processed_polygons, QgsFeatureSink.FastInsert)
+        self.params.sink.addFeatures(processed_polygons, QgsFeatureSink.FastInsert)
+
+    def _lifecycle(self, polygon):
+        self.rotator.rotation_check = False
+        poly = Polygon(polygon)
+        nearest_line_geom = self.line_layer.get_nearest_line_geom(poly.center)
+        dist = nearest_line_geom.distance(poly.p_geom)
+
+        if self.params.distance and dist > self.params.distance:
+            return self.get_new_feature(poly)
+
+        if self.params.no_multi and poly.is_multi:
+            return self.get_new_feature(poly)
+
+        vertexes, vertex_index, nearest_vertex = poly.get_nearest_vertex(nearest_line_geom)
+        line1, line2 = poly.get_vertex_edges(vertexes, vertex_index)
+        # this 2 azimuths FROM the closest vertex TO the next and TO the previous vertexes
+        line1_azimuth = self.rotator.get_line_azimuth(line1)
+        line2_azimuth = self.rotator.get_line_azimuth(line2)
+        segment_azimuth = self.rotator.get_segment_azimuth(nearest_line_geom, nearest_vertex)
+        delta1 = self.rotator.get_delta_azimuth(segment_azimuth, line1_azimuth)
+        delta2 = self.rotator.get_delta_azimuth(segment_azimuth, line2_azimuth)
+        if abs(delta1) <= self.params.angle >= abs(delta2):
+            if self.params.by_longest:
+                self.rotator.rotate_by_longest(delta1, delta2, line1.length(), line2.length(), poly)
+            else:
+                self.rotator.rotate_not_by_longest(delta1, delta2, poly)
+        else:
+            self.rotator.others_rotations(delta1, delta2, poly, self.params.angle)
+
+        return self.get_new_feature(poly)
+
+    def get_new_feature(self, poly: Polygon):
+        new_feature = QgsFeature(self.params.fields)
+        new_feature.setGeometry(poly.p_geom)
+        attrs = poly.p.attributes()
+        if self.rotator.rotation_check:
+            attrs.append(1)
+        new_feature.setAttributes(attrs)
+        return new_feature
 
 
 # TODO: for the future: a method to make 2 objects (lines, polygons) parallel
