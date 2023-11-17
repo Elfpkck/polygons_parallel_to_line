@@ -33,71 +33,68 @@ class PolygonsParallelToLine:
         self.feedback = feedback
         self.params = params
         self.total_number = self.params.polygon_layer.featureCount()
-        self.line_layer = LineLayer(self.params.line_layer)
-        self.rotator = Rotator()
 
     def run(self) -> None:
         # pydevd_pycharm.settrace("127.0.0.1", port=53100, stdoutToServer=True, stderrToServer=True)
-        self._validate_polygon_layer()
-        self._rotate_and_write()
+        self.validate_polygon_layer()
+        self.rotate_polygons()
 
-    def _validate_polygon_layer(self):
+    def validate_polygon_layer(self):
         if not self.total_number:
             raise QgsProcessingException(tr("Layer does not have any polygons"))
 
-    def _rotate_and_write(self):
+    def rotate_polygons(self):
         total = 100.0 / self.total_number
         processed_polygons = []
 
         for i, polygon in enumerate(self.params.polygon_layer.getFeatures(), start=1):
             if self.feedback.isCanceled():
                 break
-            # TODO: control rotator lifecycle here?
-            # TODO: create some new class for polygon and line? maybe instead of rotator?
-            processed_polygons.append(self._lifecycle(polygon))
+
+            processed_polygons.append(self.rotate_polygon(polygon))
             self.feedback.setProgress(int(i * total))
 
         self.params.sink.addFeatures(processed_polygons, QgsFeatureSink.FastInsert)
 
-    def _lifecycle(self, polygon):
-        self.rotator.rotation_check = False
+    def rotate_polygon(self, polygon):
         poly = polygon_factory(polygon)
-        line = self.line_layer.get_closest_line_geom(poly.center)
+        line_layer = LineLayer(self.params.line_layer)
+        line = line_layer.get_closest_line_geom(poly.center)
         distance = line.get_distance(poly.geom)
 
-        if self.params.distance and distance > self.params.distance:
-            return self.get_new_feature(poly)
-
-        if self.params.no_multi and poly.is_multi:
-            return self.get_new_feature(poly)
+        if (self.params.distance and distance > self.params.distance) or (self.params.no_multi and poly.is_multi):
+            return self.get_new_feature(poly, rotation_check=False)
 
         closest_part = poly.get_closest_part(line.geom)
         edge_1, edge_2 = closest_part.get_closest_edges()
         # this 2 azimuths FROM the closest vertex TO the next and TO the previous vertexes
-        edge_1_azimuth = edge_1.get_line_azimuth()
-        edge_2_azimuth = edge_2.get_line_azimuth()
+        edge_1_azimuth, edge_2_azimuth = edge_1.get_line_azimuth(), edge_2.get_line_azimuth()
         line_segment_azimuth = line.get_closest_segment_azimuth(closest_part.closest_vertex)
         delta1 = DeltaAzimuth(line_segment_azimuth, edge_1_azimuth).delta_azimuth
         delta2 = DeltaAzimuth(line_segment_azimuth, edge_2_azimuth).delta_azimuth
-        if abs(delta1) <= self.params.angle >= abs(delta2):
+        rotator = Rotator(poly, delta1, delta2)
+        self.rotate(rotator, edge_1, edge_2)
+        return self.get_new_feature(rotator.poly, rotator.rotation_check)
+
+    def rotate(self, rotator, edge_1, edge_2) -> None:
+        # TODO: possible to refactor this method?
+        if abs(rotator.delta1) <= self.params.angle >= abs(rotator.delta2):
             if self.params.by_longest:
-                self.rotator.rotate_by_longest(delta1, delta2, edge_1.length, edge_2.length, poly)
+                rotator.rotate_by_longest_edge(edge_1.length, edge_2.length)
             else:
-                self.rotator.rotate_not_by_longest(delta1, delta2, poly)
+                rotator.rotate_by_less_angle()
         else:
-            self.rotator.others_rotations(delta1, delta2, poly, self.params.angle)
+            rotator.others_rotations(self.params.angle)
 
-        return self.get_new_feature(poly)
-
-    def get_new_feature(self, poly: Polygon):
+    def get_new_feature(self, poly: Polygon, rotation_check: bool):
         new_feature = QgsFeature(self.params.fields)
         new_feature.setGeometry(poly.geom)
         attrs = poly.poly.attributes()
-        if self.rotator.rotation_check:
+        if rotation_check:
             attrs.append(1)
         new_feature.setAttributes(attrs)
         return new_feature
 
 
 # TODO: for the future: a method to make 2 objects (lines, polygons) parallel
-# TODO: update translations including path
+# TODO: update translations including path or remove them

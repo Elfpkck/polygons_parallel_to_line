@@ -14,7 +14,8 @@ class DeltaAzimuth:
         delta_azimuth = self.as_positive_azimuth(segment_azimuth) - self.as_positive_azimuth(line_azimuth)
         self.delta_azimuth = self.as_less_than_90_azimuth(delta_azimuth)
 
-    def as_positive_azimuth(self, azimuth):
+    @staticmethod
+    def as_positive_azimuth(azimuth):
         """Make azimuth positive (same semicircle directions)"""
         if azimuth == -180:
             azimuth = 180
@@ -22,7 +23,8 @@ class DeltaAzimuth:
             azimuth += 180
         return azimuth
 
-    def as_less_than_90_azimuth(self, azimuth):
+    @staticmethod
+    def as_less_than_90_azimuth(azimuth):
         """Make abs(azimuth) < 90"""
         if azimuth > 90:  # TODO: check 90
             azimuth -= 180
@@ -32,30 +34,33 @@ class DeltaAzimuth:
 
 
 class Rotator:
-    def __init__(self):
+    def __init__(self, poly: Polygon, delta1, delta2):
+        self.poly = poly
+        self.delta1 = delta1
+        self.delta2 = delta2
         self.rotation_check = False
 
-    def _rotate(self, angle: float, poly: Polygon):
+    def rotate(self, angle):
         """QgsGeometry.rotate() takes any positive and negative values. Positive - rotate clockwise,
         negative - counterclockwise.
         """
-        poly.geom.rotate(angle, poly.center)
-        poly.poly.setGeometry(poly.geom)
+        self.poly.geom.rotate(angle, self.poly.center)
+        self.poly.poly.setGeometry(self.poly.geom)
         self.rotation_check = True
 
-    def rotate_by_longest(self, delta1, delta2, length1, length2, poly: Polygon):
+    def rotate_by_longest_edge(self, length1, length2):
         if length1 > length2:
-            self._rotate(delta1, poly)
+            self.rotate(self.delta1)
         elif length1 < length2:
-            self._rotate(delta2, poly)
+            self.rotate(self.delta2)
         else:
-            self.rotate_not_by_longest(delta1, delta2, poly)
+            self.rotate_by_less_angle()
 
-    def rotate_not_by_longest(self, delta1, delta2, poly):
-        self._rotate(delta2, poly) if delta1 > delta2 else self._rotate(delta1, poly)
+    def rotate_by_less_angle(self):
+        self.rotate(self.delta2) if self.delta1 > self.delta2 else self.rotate(self.delta1)
 
-    def others_rotations(self, delta1, delta2, poly, angle):
-        if abs(delta1) <= angle:
-            self._rotate(delta1, poly)
-        elif abs(delta2) <= angle:
-            self._rotate(delta2, poly)
+    def others_rotations(self, angle: float):  # TODO: understand and rename
+        if abs(self.delta1) <= angle:
+            self.rotate(self.delta1)
+        elif abs(self.delta2) <= angle:
+            self.rotate(self.delta2)
