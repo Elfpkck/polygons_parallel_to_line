@@ -7,12 +7,14 @@ if TYPE_CHECKING:
     from .polygon import Polygon
 
 
-class Rotator:
-    def __init__(self):
-        self.rotation_check = False
+class DeltaAzimuth:
+    def __init__(self, segment_azimuth, line_azimuth):
+        self.segment_azimuth = segment_azimuth
+        self.line_azimuth = line_azimuth
+        delta_azimuth = self.as_positive_azimuth(segment_azimuth) - self.as_positive_azimuth(line_azimuth)
+        self.delta_azimuth = self.as_less_than_90_azimuth(delta_azimuth)
 
-    @staticmethod
-    def as_positive_azimuth(azimuth):
+    def as_positive_azimuth(self, azimuth):
         """Make azimuth positive (same semicircle directions)"""
         if azimuth == -180:
             azimuth = 180
@@ -20,17 +22,18 @@ class Rotator:
             azimuth += 180
         return azimuth
 
-    def get_delta_azimuth(self, segment_azimuth, line_azimuth):
-        segment_azimuth = self.as_positive_azimuth(segment_azimuth)
-        line_azimuth = self.as_positive_azimuth(line_azimuth)
-        delta_azimuth = segment_azimuth - line_azimuth
+    def as_less_than_90_azimuth(self, azimuth):
+        """Make abs(azimuth) < 90"""
+        if azimuth > 90:  # TODO: check 90
+            azimuth -= 180
+        elif azimuth < -90:
+            azimuth += 180
+        return azimuth
 
-        # make abs(delta azimuth) < 90
-        if delta_azimuth > 90:  # TODO: check 90
-            delta_azimuth -= 180
-        elif delta_azimuth < -90:
-            delta_azimuth += 180
-        return delta_azimuth
+
+class Rotator:
+    def __init__(self):
+        self.rotation_check = False
 
     def _rotate(self, angle: float, poly: Polygon):
         """QgsGeometry.rotate() takes any positive and negative values. Positive - rotate clockwise,
