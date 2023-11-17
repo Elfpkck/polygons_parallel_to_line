@@ -77,14 +77,12 @@ class PolygonsParallelToLine:
         return self.get_new_feature(rotator.poly, rotator.rotation_check)
 
     def rotate(self, rotator, edge_1, edge_2) -> None:
-        # TODO: possible to refactor this method?
         if abs(rotator.delta1) <= self.params.angle >= abs(rotator.delta2):
             if self.params.by_longest:
-                rotator.rotate_by_longest_edge(edge_1.length, edge_2.length)
-            else:
-                rotator.rotate_by_less_angle()
-        else:
-            rotator.others_rotations(self.params.angle)
+                return rotator.rotate_by_longest_edge(edge_1.length, edge_2.length)
+            return rotator.rotate_by_less_angle()
+
+        return rotator.rotate_by_angle_below_threshold(self.params.angle)
 
     def get_new_feature(self, poly: Polygon, rotation_check: bool):
         new_feature = QgsFeature(self.params.fields)

@@ -59,8 +59,12 @@ class Rotator:
     def rotate_by_less_angle(self):
         self.rotate(self.delta2) if self.delta1 > self.delta2 else self.rotate(self.delta1)
 
-    def others_rotations(self, angle: float):  # TODO: understand and rename
-        if abs(self.delta1) <= angle:
+    def rotate_by_angle_below_threshold(self, threshold: float) -> None:
+        # for delta in (self.delta1, self.delta2):
+        #     if abs(delta) <= threshold:
+        #         self.rotate(delta)
+        #         break
+        if abs(self.delta1) <= threshold:
             self.rotate(self.delta1)
-        elif abs(self.delta2) <= angle:
+        elif abs(self.delta2) <= threshold:
             self.rotate(self.delta2)

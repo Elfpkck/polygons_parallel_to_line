@@ -97,7 +97,7 @@ class Algorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.DISTANCE,
-                tr("Distance from line"),
+                tr("The distance from a line to the center of a polygon"),
                 type=QgsProcessingParameterNumber.Double,
                 minValue=0.0,
                 defaultValue=0.0,
