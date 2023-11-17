@@ -3,7 +3,7 @@ from __future__ import annotations
 import dataclasses
 from qgis.core import QgsFeatureSink, QgsFields, QgsProcessingException, QgsFeature
 from typing import Any, TYPE_CHECKING
-
+import pydevd_pycharm
 from .rotator import PolygonRotator, DeltaAzimuth
 from .polygon import polygon_factory
 from .line import LineLayer

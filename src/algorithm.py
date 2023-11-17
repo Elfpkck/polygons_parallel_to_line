@@ -97,7 +97,7 @@ class Algorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.DISTANCE,
-                tr("The distance from a line to the center of a polygon"),
+                tr("Distance from line"),
                 type=QgsProcessingParameterNumber.Double,
                 minValue=0.0,
                 defaultValue=0.0,
@@ -149,7 +149,8 @@ class Algorithm(QgsProcessingAlgorithm):
             output_layer = context.getMapLayer(dest_id)
             line = [x.geometry() for x in params.line_layer.getFeatures()][0].asWkt()  # TODO: remove
             poly = [x.geometry() for x in polygon_layer.getFeatures()][0].asWkt()  # TODO: remove
-            ret["result"] = [x.geometry() for x in output_layer.getFeatures()][0].asWkt()
+            result = [x.geometry() for x in output_layer.getFeatures()][0].asWkt()
+            ret["result"] = result
 
         return ret
 
