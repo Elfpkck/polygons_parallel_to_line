@@ -4,9 +4,12 @@ from typing import TYPE_CHECKING
 
 from qgis.core import QgsGeometry, QgsPoint
 import abc
+from .line import line_factory
+
 
 if TYPE_CHECKING:
     from qgis.core import QgsFeature
+    from .line import Line
 
 
 class ClosestPolygonPart:
@@ -25,7 +28,7 @@ class ClosestPolygonPart:
         min_distance = min(vertexes)
         return min_distance, *vertexes[min_distance]
 
-    def get_closest_edges(self) -> tuple:
+    def get_closest_edges(self) -> tuple[Line, Line]:
         start = QgsPoint(self.closest_vertex)
 
         if self.closest_vertex_index == 0:  # if vertex is first
@@ -37,7 +40,7 @@ class ClosestPolygonPart:
         else:
             edge1 = QgsGeometry.fromPolyline([start, QgsPoint(self.vertexes[self.closest_vertex_index + 1])])
             edge2 = QgsGeometry.fromPolyline([start, QgsPoint(self.vertexes[self.closest_vertex_index - 1])])
-        return edge1, edge2
+        return line_factory(edge1), line_factory(edge2)
 
 
 class Polygon(abc.ABC):

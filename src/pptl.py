@@ -62,8 +62,8 @@ class PolygonsParallelToLine:
     def _lifecycle(self, polygon):
         self.rotator.rotation_check = False
         poly = polygon_factory(polygon)
-        closest_line_geom = self.line_layer.get_closest_line_geom(poly.center)
-        distance = closest_line_geom.distance(poly.geom)
+        line = self.line_layer.get_closest_line_geom(poly.center)
+        distance = line.get_distance(poly.geom)
 
         if self.params.distance and distance > self.params.distance:
             return self.get_new_feature(poly)
@@ -71,17 +71,17 @@ class PolygonsParallelToLine:
         if self.params.no_multi and poly.is_multi:
             return self.get_new_feature(poly)
 
-        closest_part = poly.get_closest_part(closest_line_geom)
+        closest_part = poly.get_closest_part(line.geom)
         edge_1, edge_2 = closest_part.get_closest_edges()
         # this 2 azimuths FROM the closest vertex TO the next and TO the previous vertexes
-        edge_1_azimuth = self.rotator.get_line_azimuth(edge_1)
-        edge_2_azimuth = self.rotator.get_line_azimuth(edge_2)
-        line_segment_azimuth = self.rotator.get_line_segment_azimuth(closest_line_geom, closest_part.closest_vertex)
+        edge_1_azimuth = edge_1.get_line_azimuth()
+        edge_2_azimuth = edge_2.get_line_azimuth()
+        line_segment_azimuth = line.get_closest_segment_azimuth(closest_part.closest_vertex)
         delta1 = self.rotator.get_delta_azimuth(line_segment_azimuth, edge_1_azimuth)
         delta2 = self.rotator.get_delta_azimuth(line_segment_azimuth, edge_2_azimuth)
         if abs(delta1) <= self.params.angle >= abs(delta2):
             if self.params.by_longest:
-                self.rotator.rotate_by_longest(delta1, delta2, edge_1.length(), edge_2.length(), poly)
+                self.rotator.rotate_by_longest(delta1, delta2, edge_1.length, edge_2.length, poly)
             else:
                 self.rotator.rotate_not_by_longest(delta1, delta2, poly)
         else:

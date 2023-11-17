@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from qgis.core import QgsGeometry, QgsPoint
 from typing import TYPE_CHECKING
 
 
@@ -11,38 +10,6 @@ if TYPE_CHECKING:
 class Rotator:
     def __init__(self):
         self.rotation_check = False
-
-    @staticmethod
-    def get_line_azimuth(line) -> int:
-        """azimuth() returns 0-180 and 0-(-180) values. 0 - north, 90 - east, 180 - south, -90 - west"""
-        as_polyline = line.asPolyline()
-        assert len(as_polyline) == 2, f"Line must have 2 vertexes but has {len(as_polyline)}"
-        return as_polyline[0].azimuth(as_polyline[1])
-
-    # TODO: move parts to new Line class?
-    @staticmethod
-    def get_line_segment_azimuth(nearest_line_geom, nearest_vertex):
-        if nearest_line_geom.isMultipart():
-            dct = {}
-            min_dists = set()
-
-            for line in nearest_line_geom.asMultiPolyline():
-                l = QgsGeometry.fromPolyline([QgsPoint(x) for x in line])
-                min_dist, _, greater_vertex_index, _ = l.closestSegmentWithContext(nearest_vertex)
-                min_dists.add(min_dist)
-                dct[min_dist] = [line, greater_vertex_index]
-
-            min_distance = min(min_dists)
-            line_ = dct[min_distance][0]
-            index_segm_end = dct[min_distance][1]
-            segm_end = line_[index_segm_end]
-            segm_start = line_[index_segm_end - 1]
-        else:
-            min_dist, _, greater_vertex_index, _ = nearest_line_geom.closestSegmentWithContext(nearest_vertex)
-            segm_end = nearest_line_geom.asPolyline()[greater_vertex_index]
-            segm_start = nearest_line_geom.asPolyline()[greater_vertex_index - 1]
-
-        return segm_start.azimuth(segm_end)  # this azimuth can be x or (180 - x)
 
     @staticmethod
     def as_positive_azimuth(azimuth):
