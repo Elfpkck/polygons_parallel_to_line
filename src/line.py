@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 
 
 class Line(ABC):
-    def __init__(self, geometry, is_multi: bool):
+    def __init__(self, /, geometry, is_multi: bool):
         self.geom = geometry
         self.is_multi = is_multi
         self.polyline = None

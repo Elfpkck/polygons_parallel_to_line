@@ -4,7 +4,7 @@ import dataclasses
 from qgis.core import QgsFeatureSink, QgsFields, QgsProcessingException, QgsFeature
 from typing import Any, TYPE_CHECKING
 
-from .rotator import Rotator, DeltaAzimuth
+from .rotator import PolygonRotator, DeltaAzimuth
 from .polygon import polygon_factory
 from .line import LineLayer
 from .helpers import tr
@@ -72,7 +72,7 @@ class PolygonsParallelToLine:
         line_segment_azimuth = line.get_closest_segment_azimuth(closest_part.closest_vertex)
         delta1 = DeltaAzimuth(line_segment_azimuth, edge_1_azimuth).delta_azimuth
         delta2 = DeltaAzimuth(line_segment_azimuth, edge_2_azimuth).delta_azimuth
-        rotator = Rotator(poly, delta1, delta2)
+        rotator = PolygonRotator(poly, delta1, delta2)
         self.rotate(rotator, edge_1, edge_2)
         return self.get_new_feature(rotator.poly, rotator.rotation_check)
 
@@ -82,7 +82,9 @@ class PolygonsParallelToLine:
                 return rotator.rotate_by_longest_edge(edge_1.length, edge_2.length)
             return rotator.rotate_by_less_angle()
 
-        return rotator.rotate_by_angle_below_threshold(self.params.angle)
+        for delta in (rotator.delta1, rotator.delta2):
+            if abs(delta) <= self.params.angle:
+                return rotator.rotate_by_angle(delta)
 
     def get_new_feature(self, poly: Polygon, rotation_check: bool):
         new_feature = QgsFeature(self.params.fields)

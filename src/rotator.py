@@ -33,14 +33,14 @@ class DeltaAzimuth:
         return azimuth
 
 
-class Rotator:
+class PolygonRotator:
     def __init__(self, poly: Polygon, delta1, delta2):
         self.poly = poly
         self.delta1 = delta1
         self.delta2 = delta2
         self.rotation_check = False
 
-    def rotate(self, angle):
+    def rotate_by_angle(self, angle) -> None:
         """QgsGeometry.rotate() takes any positive and negative values. Positive - rotate clockwise,
         negative - counterclockwise.
         """
@@ -50,21 +50,11 @@ class Rotator:
 
     def rotate_by_longest_edge(self, length1, length2):
         if length1 > length2:
-            self.rotate(self.delta1)
+            self.rotate_by_angle(self.delta1)
         elif length1 < length2:
-            self.rotate(self.delta2)
+            self.rotate_by_angle(self.delta2)
         else:
             self.rotate_by_less_angle()
 
     def rotate_by_less_angle(self):
-        self.rotate(self.delta2) if self.delta1 > self.delta2 else self.rotate(self.delta1)
-
-    def rotate_by_angle_below_threshold(self, threshold: float) -> None:
-        # for delta in (self.delta1, self.delta2):
-        #     if abs(delta) <= threshold:
-        #         self.rotate(delta)
-        #         break
-        if abs(self.delta1) <= threshold:
-            self.rotate(self.delta1)
-        elif abs(self.delta2) <= threshold:
-            self.rotate(self.delta2)
+        self.rotate_by_angle(self.delta2) if self.delta1 > self.delta2 else self.rotate_by_angle(self.delta1)
