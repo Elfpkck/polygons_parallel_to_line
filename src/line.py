@@ -68,7 +68,7 @@ class LineLayer:
     def __init__(self, line_layer):
         self.line_layer = line_layer
         self.id_line_map = {x.id(): x for x in line_layer.getFeatures()}
-        self.spatial_index = QgsSpatialIndex()
+        self.spatial_index = QgsSpatialIndex(flags=QgsSpatialIndex.FlagStoreFeatureGeometries)
         self.spatial_index.addFeatures(line_layer.getFeatures())
 
     def get_closest_line(self, point):
