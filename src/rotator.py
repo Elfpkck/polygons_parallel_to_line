@@ -57,4 +57,4 @@ class PolygonRotator:
             self.rotate_by_less_angle()
 
     def rotate_by_less_angle(self):
-        self.rotate_by_angle(self.delta2) if self.delta1 > self.delta2 else self.rotate_by_angle(self.delta1)
+        self.rotate_by_angle(self.delta2) if abs(self.delta1) > abs(self.delta2) else self.rotate_by_angle(self.delta1)
