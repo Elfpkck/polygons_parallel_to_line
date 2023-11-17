@@ -5,12 +5,13 @@ from qgis.core import QgsFeatureSink, QgsFields, QgsProcessingException, QgsFeat
 from typing import Any, TYPE_CHECKING
 
 from .rotator import Rotator
-from .polygon import Polygon
+from .polygon import polygon_factory
 from .line import LineLayer
 from .helpers import tr
 
 if TYPE_CHECKING:
     from qgis.core import QgsProcessingFeedback
+    from .polygon import Polygon
 
 
 @dataclasses.dataclass
@@ -60,27 +61,27 @@ class PolygonsParallelToLine:
 
     def _lifecycle(self, polygon):
         self.rotator.rotation_check = False
-        poly = Polygon(polygon)
-        nearest_line_geom = self.line_layer.get_nearest_line_geom(poly.center)
-        dist = nearest_line_geom.distance(poly.p_geom)
+        poly = polygon_factory(polygon)
+        closest_line_geom = self.line_layer.get_closest_line_geom(poly.center)
+        distance = closest_line_geom.distance(poly.geom)
 
-        if self.params.distance and dist > self.params.distance:
+        if self.params.distance and distance > self.params.distance:
             return self.get_new_feature(poly)
 
         if self.params.no_multi and poly.is_multi:
             return self.get_new_feature(poly)
 
-        vertexes, vertex_index, nearest_vertex = poly.get_nearest_vertex(nearest_line_geom)
-        line1, line2 = poly.get_vertex_edges(vertexes, vertex_index)
+        closest_part = poly.get_closest_part(closest_line_geom)
+        edge_1, edge_2 = closest_part.get_closest_edges()
         # this 2 azimuths FROM the closest vertex TO the next and TO the previous vertexes
-        line1_azimuth = self.rotator.get_line_azimuth(line1)
-        line2_azimuth = self.rotator.get_line_azimuth(line2)
-        segment_azimuth = self.rotator.get_segment_azimuth(nearest_line_geom, nearest_vertex)
-        delta1 = self.rotator.get_delta_azimuth(segment_azimuth, line1_azimuth)
-        delta2 = self.rotator.get_delta_azimuth(segment_azimuth, line2_azimuth)
+        edge_1_azimuth = self.rotator.get_line_azimuth(edge_1)
+        edge_2_azimuth = self.rotator.get_line_azimuth(edge_2)
+        line_segment_azimuth = self.rotator.get_line_segment_azimuth(closest_line_geom, closest_part.closest_vertex)
+        delta1 = self.rotator.get_delta_azimuth(line_segment_azimuth, edge_1_azimuth)
+        delta2 = self.rotator.get_delta_azimuth(line_segment_azimuth, edge_2_azimuth)
         if abs(delta1) <= self.params.angle >= abs(delta2):
             if self.params.by_longest:
-                self.rotator.rotate_by_longest(delta1, delta2, line1.length(), line2.length(), poly)
+                self.rotator.rotate_by_longest(delta1, delta2, edge_1.length(), edge_2.length(), poly)
             else:
                 self.rotator.rotate_not_by_longest(delta1, delta2, poly)
         else:
@@ -90,8 +91,8 @@ class PolygonsParallelToLine:
 
     def get_new_feature(self, poly: Polygon):
         new_feature = QgsFeature(self.params.fields)
-        new_feature.setGeometry(poly.p_geom)
-        attrs = poly.p.attributes()
+        new_feature.setGeometry(poly.geom)
+        attrs = poly.poly.attributes()
         if self.rotator.rotation_check:
             attrs.append(1)
         new_feature.setAttributes(attrs)

@@ -12,14 +12,16 @@ class Rotator:
     def __init__(self):
         self.rotation_check = False
 
-    def get_line_azimuth(self, line) -> int:
+    @staticmethod
+    def get_line_azimuth(line) -> int:
         """azimuth() returns 0-180 and 0-(-180) values. 0 - north, 90 - east, 180 - south, -90 - west"""
         as_polyline = line.asPolyline()
-        assert len(as_polyline) == 2
+        assert len(as_polyline) == 2, f"Line must have 2 vertexes but has {len(as_polyline)}"
         return as_polyline[0].azimuth(as_polyline[1])
 
     # TODO: move parts to new Line class?
-    def get_segment_azimuth(self, nearest_line_geom, nearest_vertex):
+    @staticmethod
+    def get_line_segment_azimuth(nearest_line_geom, nearest_vertex):
         if nearest_line_geom.isMultipart():
             dct = {}
             min_dists = set()
@@ -43,7 +45,7 @@ class Rotator:
         return segm_start.azimuth(segm_end)  # this azimuth can be x or (180 - x)
 
     @staticmethod
-    def make_azimuth_positive(azimuth):
+    def as_positive_azimuth(azimuth):
         """Make azimuth positive (same semicircle directions)"""
         if azimuth == -180:
             azimuth = 180
@@ -52,8 +54,8 @@ class Rotator:
         return azimuth
 
     def get_delta_azimuth(self, segment_azimuth, line_azimuth):
-        segment_azimuth = self.make_azimuth_positive(segment_azimuth)
-        line_azimuth = self.make_azimuth_positive(line_azimuth)
+        segment_azimuth = self.as_positive_azimuth(segment_azimuth)
+        line_azimuth = self.as_positive_azimuth(line_azimuth)
         delta_azimuth = segment_azimuth - line_azimuth
 
         # make abs(delta azimuth) < 90
@@ -67,8 +69,8 @@ class Rotator:
         """QgsGeometry.rotate() takes any positive and negative values. Positive - rotate clockwise,
         negative - counterclockwise.
         """
-        poly.p_geom.rotate(angle, poly.center)
-        poly.p.setGeometry(poly.p_geom)
+        poly.geom.rotate(angle, poly.center)
+        poly.poly.setGeometry(poly.geom)
         self.rotation_check = True
 
     def rotate_by_longest(self, delta1, delta2, length1, length2, poly: Polygon):
