@@ -2,7 +2,7 @@ from qgis import processing
 from qgis.core import QgsFeature, QgsGeometry, QgsProcessingOutputLayerDefinition, QgsVectorLayer
 
 import pytest
-from src.algorithm import Algorithm
+from polygons_parallel_to_line.src.algorithm import Algorithm
 
 
 LINES = (
