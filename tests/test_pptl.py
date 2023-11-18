@@ -2,7 +2,7 @@ from qgis import processing
 from qgis.core import QgsFeature, QgsGeometry, QgsProcessingOutputLayerDefinition, QgsVectorLayer
 
 import pytest
-
+import pydevd_pycharm
 from src.algorithm import Algorithm
 
 

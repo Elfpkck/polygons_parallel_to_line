@@ -48,13 +48,13 @@ class PolygonRotator:
         self.poly.poly.setGeometry(self.poly.geom)
         self.rotation_check = True
 
-    def rotate_by_longest_edge(self, length1, length2):
+    def rotate_by_longest_edge(self, length1, length2) -> None:
         if length1 > length2:
             self.rotate_by_angle(self.delta1)
         elif length1 < length2:
             self.rotate_by_angle(self.delta2)
         else:
-            self.rotate_by_less_angle()
+            self.rotate_by_lower_angle()
 
-    def rotate_by_less_angle(self):
+    def rotate_by_lower_angle(self) -> None:
         self.rotate_by_angle(self.delta2) if abs(self.delta1) > abs(self.delta2) else self.rotate_by_angle(self.delta1)

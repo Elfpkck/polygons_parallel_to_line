@@ -8,25 +8,26 @@ from .line import line_factory
 
 
 if TYPE_CHECKING:
-    from qgis.core import QgsFeature
+    from qgis.core import QgsFeature, QgsPointXY
     from .line import Line
 
 
 class ClosestPolygonPart:
-    def __init__(self, vertexes, closest_line_geom):
+    def __init__(self, vertexes: list[QgsPointXY], closest_line_geom: QgsGeometry):
         self.vertexes = vertexes
         self.closest_line_geom = closest_line_geom
         self.distance, self.closest_vertex_index, self.closest_vertex = self._get_closest_vertex()
 
-    def _get_closest_vertex(self) -> tuple:
-        vertexes = {}
+    def _get_closest_vertex(self) -> tuple[float, int, QgsPointXY]:
+        vertexes: dict[float, tuple[int, QgsPointXY]] = {}
         for i, vertex in enumerate(self.vertexes):
             vertex_geom = QgsGeometry.fromPointXY(vertex)
             distance_to_line = vertex_geom.distance(self.closest_line_geom)
             vertexes[distance_to_line] = (i, vertex)
 
         min_distance = min(vertexes)
-        return min_distance, *vertexes[min_distance]
+        closest_vertex_index, closest_vertex = vertexes[min_distance]
+        return min_distance, closest_vertex_index, closest_vertex
 
     def get_closest_edges(self) -> tuple[Line, Line]:
         start = QgsPoint(self.closest_vertex)
@@ -52,11 +53,11 @@ class Polygon(abc.ABC):
         self.vertexes = self.get_vertexes()
 
     @abc.abstractmethod
-    def get_vertexes(self) -> list:
+    def get_vertexes(self) -> list[list[QgsPointXY]]:
         """Without the last vertex which is the same as the first one."""
         pass
 
-    def get_closest_part(self, closest_line_geom) -> ClosestPolygonPart:
+    def get_closest_part(self, closest_line_geom: QgsGeometry) -> ClosestPolygonPart:
         """If polygon is multipart, return the closest vertex from all parts."""
         polygon_parts = {}
         for part in self.vertexes:
@@ -67,16 +68,16 @@ class Polygon(abc.ABC):
 
 
 class SimplePolygone(Polygon):
-    def get_vertexes(self) -> list:
+    def get_vertexes(self) -> list[list[QgsPointXY]]:
         return [self.geom.asPolygon()[0][:-1]]
 
 
 class MultiPolygon(Polygon):
-    def get_vertexes(self) -> list:
+    def get_vertexes(self) -> list[list[QgsPointXY]]:
         return [part[0][:-1] for part in self.geom.asMultiPolygon()]
 
 
-def polygon_factory(polygon) -> Polygon:
+def polygon_factory(polygon: QgsFeature) -> Polygon:
     if polygon.geometry().isMultipart():
         return MultiPolygon(polygon, is_multi=True)
     else:

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import dataclasses
-from qgis.core import QgsFeatureSink, QgsFields, QgsProcessingException, QgsFeature
+from qgis.core import QgsFeatureSink, QgsFields, QgsProcessingException, QgsFeature, QgsProcessingFeatureSource
 from typing import Any, TYPE_CHECKING
-import pydevd_pycharm
+import pydevd_pycharm  # TODO remove this import from all files
 from .rotator import PolygonRotator, DeltaAzimuth
 from .polygon import polygon_factory
 from .line import LineLayer
@@ -11,14 +11,15 @@ from .line import LineLayer
 if TYPE_CHECKING:
     from qgis.core import QgsProcessingFeedback
     from .polygon import Polygon
+    from .line import Line
 
 
 @dataclasses.dataclass
 class Params:
     """Input parameters for the algorithm."""
 
-    line_layer: Any
-    polygon_layer: Any
+    line_layer: QgsProcessingFeatureSource
+    polygon_layer: QgsProcessingFeatureSource
     by_longest: bool
     no_multi: bool
     distance: float
@@ -38,11 +39,11 @@ class PolygonsParallelToLine:
         self.validate_polygon_layer()
         self.rotate_polygons()
 
-    def validate_polygon_layer(self):
+    def validate_polygon_layer(self) -> None:
         if not self.total_number:
             raise QgsProcessingException("Layer does not have any polygons")
 
-    def rotate_polygons(self):
+    def rotate_polygons(self) -> None:
         total = 100.0 / self.total_number
         processed_polygons = []
 
@@ -55,7 +56,7 @@ class PolygonsParallelToLine:
 
         self.params.sink.addFeatures(processed_polygons, QgsFeatureSink.FastInsert)
 
-    def rotate_polygon(self, polygon):
+    def rotate_polygon(self, polygon: QgsFeature) -> QgsFeature:
         poly = polygon_factory(polygon)
         line_layer = LineLayer(self.params.line_layer)
         line = line_layer.get_closest_line_geom(poly.center)
@@ -75,17 +76,17 @@ class PolygonsParallelToLine:
         self.rotate(rotator, edge_1, edge_2)
         return self.get_new_feature(rotator.poly, rotator.rotation_check)
 
-    def rotate(self, rotator, edge_1, edge_2) -> None:
+    def rotate(self, rotator: PolygonRotator, edge_1: Line, edge_2: Line) -> None:
         if abs(rotator.delta1) <= self.params.angle >= abs(rotator.delta2):
             if self.params.by_longest:
                 return rotator.rotate_by_longest_edge(edge_1.length, edge_2.length)
-            return rotator.rotate_by_less_angle()
+            return rotator.rotate_by_lower_angle()
 
         for delta in (rotator.delta1, rotator.delta2):
             if abs(delta) <= self.params.angle:
                 return rotator.rotate_by_angle(delta)
 
-    def get_new_feature(self, poly: Polygon, rotation_check: bool):
+    def get_new_feature(self, poly: Polygon, rotation_check: bool) -> QgsFeature:
         new_feature = QgsFeature(self.params.fields)
         new_feature.setGeometry(poly.geom)
         attrs = poly.poly.attributes()

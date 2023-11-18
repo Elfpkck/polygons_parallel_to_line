@@ -33,16 +33,16 @@ class Algorithm(QgsProcessingAlgorithm):
     ANGLE = "ANGLE"
     COLUMN_NAME = "_rotated"
 
-    def createInstance(self):
+    def createInstance(self) -> Algorithm:
         return self.__class__()
 
-    def name(self):
+    def name(self) -> str:
         return "pptl_algo"
 
-    def displayName(self):
+    def displayName(self) -> str:
         return "Polygons parallel to line"
 
-    def group(self):
+    def group(self) -> str:
         """
         Returns the name of the group this algorithm belongs to. This string
         should be localised.
@@ -50,7 +50,7 @@ class Algorithm(QgsProcessingAlgorithm):
         # TODO: add to existing group if possible
         return "Algorithms for vector layers"
 
-    def groupId(self):
+    def groupId(self) -> str:
         """
         Returns the unique ID of the group this algorithm belongs to. This
         string should be fixed for the algorithm, and must not be localised.
@@ -60,7 +60,7 @@ class Algorithm(QgsProcessingAlgorithm):
         """
         return "examplescripts"  # TODO:
 
-    def shortHelpString(self):
+    def shortHelpString(self) -> str:
         """
         Returns a localised short helper string for the algorithm. This string
         should provide a basic description about what the algorithm does and the
@@ -68,7 +68,7 @@ class Algorithm(QgsProcessingAlgorithm):
         """
         return "Example algorithm short description"  # TODO:
 
-    def initAlgorithm(self, config: Optional[dict] = None):
+    def initAlgorithm(self, config: Optional[dict] = None) -> None:
         self.addParameter(
             QgsProcessingParameterFeatureSink(
                 self.OUTPUT_LAYER,
@@ -115,7 +115,7 @@ class Algorithm(QgsProcessingAlgorithm):
 
     def processAlgorithm(
         self, parameters: dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
-    ):
+    ) -> dict[str, str]:
         new_fields = QgsFields()
         polygon_layer = self.parameterAsSource(parameters, self.POLYGON_LAYER, context)
         for field in polygon_layer.fields():
