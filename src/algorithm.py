@@ -15,10 +15,9 @@ from qgis.core import (
     QgsField,
 )
 
-import pydevd_pycharm
 
 from .pptl import PolygonsParallelToLine, Params
-from .helpers import tr
+
 
 if TYPE_CHECKING:
     from qgis.core import QgsProcessingContext, QgsProcessingFeedback
@@ -41,7 +40,7 @@ class Algorithm(QgsProcessingAlgorithm):
         return "pptl_algo"
 
     def displayName(self):
-        return tr("Polygons parallel to line")
+        return "Polygons parallel to line"
 
     def group(self):
         """
@@ -49,7 +48,7 @@ class Algorithm(QgsProcessingAlgorithm):
         should be localised.
         """
         # TODO: add to existing group if possible
-        return tr("Algorithms for vector layers")
+        return "Algorithms for vector layers"
 
     def groupId(self):
         """
@@ -65,9 +64,9 @@ class Algorithm(QgsProcessingAlgorithm):
         """
         Returns a localised short helper string for the algorithm. This string
         should provide a basic description about what the algorithm does and the
-        parameters and outputs associated with it..
+        parameters and outputs associated with it.
         """
-        return tr("Example algorithm short description")  # TODO:
+        return "Example algorithm short description"  # TODO:
 
     def initAlgorithm(self, config: Optional[dict] = None):
         self.addParameter(
@@ -77,29 +76,27 @@ class Algorithm(QgsProcessingAlgorithm):
             )
         )
         self.addParameter(
-            QgsProcessingParameterFeatureSource(
-                self.LINE_LAYER, tr("Select line layer"), [QgsProcessing.TypeVectorLine]
-            )
+            QgsProcessingParameterFeatureSource(self.LINE_LAYER, "Select line layer", [QgsProcessing.TypeVectorLine])
         )
         self.addParameter(
             QgsProcessingParameterFeatureSource(
-                self.POLYGON_LAYER, tr("Select polygon layer"), [QgsProcessing.TypeVectorPolygon]
+                self.POLYGON_LAYER, "Select polygon layer", [QgsProcessing.TypeVectorPolygon]
             )
         )
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.LONGEST,
-                tr("Rotate by longest edge if both angles between " "polygon edges and line segment <= 'Angle value'"),
+                "Rotate by longest edge if both angles between polygon edges and line segment <= 'Angle value'",
                 defaultValue=False,
             )
         )
         self.addParameter(
-            QgsProcessingParameterBoolean(self.NO_MULTI, tr("Do not rotate multipolygons"), defaultValue=False)
+            QgsProcessingParameterBoolean(self.NO_MULTI, "Do not rotate multipolygons", defaultValue=False)
         )
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.DISTANCE,
-                tr("Distance from line"),
+                "Distance from line",
                 type=QgsProcessingParameterNumber.Double,
                 minValue=0.0,
                 defaultValue=0.0,
@@ -108,7 +105,7 @@ class Algorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.ANGLE,
-                tr("Angle value"),
+                "Angle value",
                 type=QgsProcessingParameterNumber.Double,
                 minValue=0.0,
                 maxValue=89.9,

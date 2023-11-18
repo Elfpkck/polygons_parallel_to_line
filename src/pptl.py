@@ -7,7 +7,6 @@ import pydevd_pycharm
 from .rotator import PolygonRotator, DeltaAzimuth
 from .polygon import polygon_factory
 from .line import LineLayer
-from .helpers import tr
 
 if TYPE_CHECKING:
     from qgis.core import QgsProcessingFeedback
@@ -41,7 +40,7 @@ class PolygonsParallelToLine:
 
     def validate_polygon_layer(self):
         if not self.total_number:
-            raise QgsProcessingException(tr("Layer does not have any polygons"))
+            raise QgsProcessingException("Layer does not have any polygons")
 
     def rotate_polygons(self):
         total = 100.0 / self.total_number
@@ -94,7 +93,3 @@ class PolygonsParallelToLine:
             attrs.append(1)
         new_feature.setAttributes(attrs)
         return new_feature
-
-
-# TODO: for the future: a method to make 2 objects (lines, polygons) parallel
-# TODO: update translations including path or remove them
