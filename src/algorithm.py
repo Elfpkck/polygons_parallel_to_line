@@ -15,6 +15,8 @@ from qgis.core import (
     QgsField,
 )
 
+import pydevd_pycharm
+
 from .pptl import PolygonsParallelToLine, Params
 from .helpers import tr
 
@@ -147,10 +149,8 @@ class Algorithm(QgsProcessingAlgorithm):
         ret = {self.OUTPUT_LAYER: dest_id}
         if os.getenv("PPTL_TEST"):  # for testing purposes
             output_layer = context.getMapLayer(dest_id)
-            line = [x.geometry() for x in params.line_layer.getFeatures()][0].asWkt()  # TODO: remove
-            poly = [x.geometry() for x in polygon_layer.getFeatures()][0].asWkt()  # TODO: remove
-            result = [x.geometry() for x in output_layer.getFeatures()][0].asWkt()
-            ret["result"] = result
+            ret["result_wkt"] = [x.geometry().asWkt() for x in output_layer.getFeatures()]
+            ret["_rotated"] = [1 if x[self.COLUMN_NAME] == 1 else 0 for x in output_layer.getFeatures()]
 
         return ret
 
