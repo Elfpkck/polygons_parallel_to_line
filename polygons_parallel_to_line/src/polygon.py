@@ -1,14 +1,15 @@
 from __future__ import annotations
 
+import abc
 from typing import TYPE_CHECKING
 
 from qgis.core import QgsGeometry, QgsPoint
-import abc
-from .line import line_factory
 
+from .line import line_factory
 
 if TYPE_CHECKING:
     from qgis.core import QgsFeature, QgsPointXY
+
     from .line import Line
 
 

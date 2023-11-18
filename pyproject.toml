@@ -1,3 +1,14 @@
+[tool.isort]
+multi_line_output = 3
+include_trailing_comma = true
+profile = "black"
+combine_as_imports = true
+force_alphabetical_sort_within_sections = true
+lines_between_types = 0
+src_paths = ["./"]
+known_third_party = []
+known_first_party = []
+
 [tool.poetry]
 name = "polygons-parallel-to-line"
 version = "0.1.0"

@@ -3,21 +3,19 @@ from __future__ import annotations
 import os
 from typing import Any, Optional, TYPE_CHECKING
 
-from qgis.PyQt.QtCore import QVariant
 from qgis.core import (
+    QgsField,
+    QgsFields,
     QgsProcessing,
     QgsProcessingAlgorithm,
     QgsProcessingParameterBoolean,
+    QgsProcessingParameterFeatureSink,
     QgsProcessingParameterFeatureSource,
     QgsProcessingParameterNumber,
-    QgsProcessingParameterFeatureSink,
-    QgsFields,
-    QgsField,
 )
+from qgis.PyQt.QtCore import QVariant
 
-
-from .pptl import PolygonsParallelToLine, Params
-
+from .pptl import Params, PolygonsParallelToLine
 
 if TYPE_CHECKING:
     from qgis.core import QgsProcessingContext, QgsProcessingFeedback

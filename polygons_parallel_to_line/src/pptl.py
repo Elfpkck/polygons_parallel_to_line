@@ -1,16 +1,25 @@
 from __future__ import annotations
 
 import dataclasses
-from qgis.core import QgsFeatureSink, QgsFields, QgsProcessingException, QgsFeature, QgsProcessingFeatureSource
 from typing import TYPE_CHECKING
-from .rotator import PolygonRotator, DeltaAzimuth
-from .polygon import polygon_factory
+
+from qgis.core import (
+    QgsFeature,
+    QgsFeatureSink,
+    QgsFields,
+    QgsProcessingException,
+    QgsProcessingFeatureSource,
+)
+
 from .line import LineLayer
+from .polygon import polygon_factory
+from .rotator import DeltaAzimuth, PolygonRotator
 
 if TYPE_CHECKING:
     from qgis.core import QgsProcessingFeedback
-    from .polygon import Polygon
+
     from .line import Line
+    from .polygon import Polygon
 
 
 @dataclasses.dataclass

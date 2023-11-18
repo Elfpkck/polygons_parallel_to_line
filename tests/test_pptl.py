@@ -1,9 +1,13 @@
-from qgis import processing
-from qgis.core import QgsFeature, QgsGeometry, QgsProcessingOutputLayerDefinition, QgsVectorLayer
-
 import pytest
-from polygons_parallel_to_line.src.algorithm import Algorithm
+from qgis import processing
+from qgis.core import (
+    QgsFeature,
+    QgsGeometry,
+    QgsProcessingOutputLayerDefinition,
+    QgsVectorLayer,
+)
 
+from polygons_parallel_to_line.src.algorithm import Algorithm
 
 LINES = (
     "LineString (3569791.65918140485882759 6347785.93876876402646303, 3569817.29298910731449723 6347770.60050677787512541, 3569817.92332864087074995 6347761.98586648423224688)",

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from qgis.core import QgsProcessingProvider
 from typing import TYPE_CHECKING
 
-from .algorithm import Algorithm
+from qgis.core import QgsProcessingProvider
 
+from .algorithm import Algorithm
 
 if TYPE_CHECKING:
     from PyQt5.QtGui import QIcon

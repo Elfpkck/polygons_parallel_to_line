@@ -1,9 +1,9 @@
 import sys
 from pathlib import Path
+
 from qgis.core import QgsApplication
 
 from .provider import Provider
-
 
 cmd_folder = str(Path(__file__).parents[1])
 

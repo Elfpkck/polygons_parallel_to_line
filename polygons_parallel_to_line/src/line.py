@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-from functools import cached_property
-from qgis.core import QgsSpatialIndex, QgsGeometry, QgsPoint
 from abc import ABC, abstractmethod
+from functools import cached_property
+from typing import TYPE_CHECKING
+
+from qgis.core import QgsGeometry, QgsPoint, QgsSpatialIndex
 
 if TYPE_CHECKING:
-    from qgis.core import QgsPointXY, QgsProcessingFeatureSource, QgsFeature
+    from qgis.core import QgsFeature, QgsPointXY, QgsProcessingFeatureSource
 
 
 class Line(ABC):
