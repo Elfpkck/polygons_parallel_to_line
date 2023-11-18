@@ -30,7 +30,7 @@ changelog=
 tags=polygon, line, vector, parallel, rotating
 
 homepage=https://github.com/Elfpkck/polygons_parallel_to_line
-category=Analysis
+category=Analysis  # TODO
 icon=icons/icon.png
 
 experimental=True
