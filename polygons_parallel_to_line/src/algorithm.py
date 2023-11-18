@@ -40,33 +40,16 @@ class Algorithm(QgsProcessingAlgorithm):
         return "pptl_algo"
 
     def displayName(self) -> str:
-        return "Polygons parallel to line"
+        return "Polygons parallel to the lines"
 
     def group(self) -> str:
-        """
-        Returns the name of the group this algorithm belongs to. This string
-        should be localised.
-        """
-        # TODO: add to existing group if possible
         return "Algorithms for vector layers"
 
     def groupId(self) -> str:
-        """
-        Returns the unique ID of the group this algorithm belongs to. This
-        string should be fixed for the algorithm, and must not be localised.
-        The group id should be unique within each provider. Group id should
-        contain lowercase alphanumeric characters only and no spaces or other
-        formatting characters.
-        """
-        return "examplescripts"  # TODO:
+        return "pptl_group"
 
     def shortHelpString(self) -> str:
-        """
-        Returns a localised short helper string for the algorithm. This string
-        should provide a basic description about what the algorithm does and the
-        parameters and outputs associated with it.
-        """
-        return "Example algorithm short description"  # TODO:
+        return "This plugin rotates polygons parallel to the lines"
 
     def initAlgorithm(self, config: Optional[dict] = None) -> None:
         self.addParameter(
@@ -150,6 +133,3 @@ class Algorithm(QgsProcessingAlgorithm):
             ret["_rotated"] = [1 if x[self.COLUMN_NAME] == 1 else 0 for x in output_layer.getFeatures()]
 
         return ret
-
-
-# TODO: possible to show icon in processing toolbox?

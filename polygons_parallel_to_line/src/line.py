@@ -24,7 +24,7 @@ class Line(ABC):
         pass
 
     def get_closest_segment_azimuth(self, point: QgsPointXY) -> float:
-        """azimuth() returns 0-180 and 0-(-180) values. 0 - north, 90 - east, 180 - south, -90 - west"""
+        """azimuth() returns 0-180 and 0-(-180) values. 0 - north, 90 - east, 180 - south, -90 - west."""
         start, end = self.get_closest_segment(point)
         return start.azimuth(end)
 

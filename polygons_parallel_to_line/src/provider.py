@@ -18,7 +18,7 @@ class Provider(QgsProcessingProvider):
         return "pptl"
 
     def name(self, *args, **kwargs) -> str:
-        return "Polygons parallel to line"
+        return "Polygons parallel to the lines"
 
     def icon(self) -> QIcon:
         return QgsProcessingProvider.icon(self)
