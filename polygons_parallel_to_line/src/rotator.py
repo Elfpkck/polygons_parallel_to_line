@@ -26,7 +26,7 @@ class DeltaAzimuth:
     @staticmethod
     def as_less_than_90_azimuth(azimuth):
         """Make abs(azimuth) < 90."""
-        if azimuth > 90:  # TODO: check 90
+        if azimuth > 90:
             azimuth -= 180
         elif azimuth < -90:
             azimuth += 180
