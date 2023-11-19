@@ -55,10 +55,10 @@ class MultiLine(Line):
     def get_closest_segment(self, point: QgsPointXY) -> tuple[QgsPointXY, QgsPointXY]:
         line_distances = {}
 
-        for line in self.polyline:
-            l = QgsGeometry.fromPolyline([QgsPoint(x) for x in line])
-            min_dist, _, greater_point_index, _ = l.closestSegmentWithContext(point)
-            line_distances[min_dist] = (line, greater_point_index)
+        for item in self.polyline:
+            line = QgsGeometry.fromPolyline([QgsPoint(x) for x in item])
+            min_dist, _, greater_point_index, _ = line.closestSegmentWithContext(point)
+            line_distances[min_dist] = (item, greater_point_index)
 
         min_distance = min(line_distances)
         line_, end_index = line_distances[min_distance]

@@ -101,12 +101,12 @@ virtualenv = ">=20.10.0"
 
 [[package]]
 name = "pydevd-pycharm"
-version = "233.11799.20"
+version = "233.11799.32"
 description = "PyCharm Debugger (used in PyCharm and PyDev)"
 optional = false
 python-versions = "*"
 files = [
-    {file = "pydevd-pycharm-233.11799.20.tar.gz", hash = "sha256:6c5ac2981bc0ae0bf4d0a1321d2e790359fd5d46f387f4e22d4321cf459a3d0d"},
+    {file = "pydevd-pycharm-233.11799.32.tar.gz", hash = "sha256:047e4c4e304d38101272b9d9bcd5b8db428e38a27bd88dbe56ed7b77e8128c54"},
 ]
 
 [[package]]
@@ -197,4 +197,4 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "f41d76ec35fbea20789e798a27cf7a129014bea9445cd0fd135778ba297464bd"
+content-hash = "b2e12c4498492556d08bdd861011a4e5b369848aec447b5b40863bf96daac2d1"

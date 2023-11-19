@@ -56,7 +56,6 @@ class Polygon(abc.ABC):
     @abc.abstractmethod
     def get_vertexes(self) -> list[list[QgsPointXY]]:
         """Without the last vertex which is the same as the first one."""
-        pass
 
     def get_closest_part(self, closest_line_geom: QgsGeometry) -> ClosestPolygonPart:
         """If polygon is multipart, return the closest vertex from all parts."""

@@ -31,25 +31,25 @@ class Algorithm(QgsProcessingAlgorithm):
     ANGLE = "ANGLE"
     COLUMN_NAME = "_rotated"
 
-    def createInstance(self) -> Algorithm:
+    def createInstance(self) -> Algorithm:  # noqa: N802
         return self.__class__()
 
     def name(self) -> str:
         return "pptl_algo"
 
-    def displayName(self) -> str:
+    def displayName(self) -> str:  # noqa: N802
         return "Polygons parallel to the lines"
 
     def group(self) -> str:
         return "Algorithms for vector layers"
 
-    def groupId(self) -> str:
+    def groupId(self) -> str:  # noqa: N802
         return "pptl_group"
 
-    def shortHelpString(self) -> str:
+    def shortHelpString(self) -> str:  # noqa: N802
         return "This plugin rotates polygons parallel to the lines"
 
-    def initAlgorithm(self, config: Optional[dict] = None) -> None:
+    def initAlgorithm(self, config: Optional[dict] = None) -> None:  # noqa: N802
         self.addParameter(
             QgsProcessingParameterFeatureSink(
                 self.OUTPUT_LAYER,
@@ -94,7 +94,7 @@ class Algorithm(QgsProcessingAlgorithm):
             )
         )
 
-    def processAlgorithm(
+    def processAlgorithm(  # noqa: N802
         self, parameters: dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> dict[str, str]:
         new_fields = QgsFields()

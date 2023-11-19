@@ -164,17 +164,17 @@ def add_features():
     def wrapped(vlayer, wkts):
         pr = vlayer.dataProvider()
         for wkt in wkts:
-            f = QgsFeature()
-            f.setGeometry(QgsGeometry.fromWkt(wkt))
-            pr.addFeature(f)
+            feature = QgsFeature()
+            feature.setGeometry(QgsGeometry.fromWkt(wkt))
+            pr.addFeature(feature)
 
     return wrapped
 
 
 @pytest.fixture(scope="session")
 def converter():
-    def wrapped(x):
-        geom = QgsGeometry.fromWkt(x)
+    def wrapped(wkt):
+        geom = QgsGeometry.fromWkt(wkt)
         if geom.isMultipart():
             return geom.asMultiPolygon()
         return geom.asPolygon()

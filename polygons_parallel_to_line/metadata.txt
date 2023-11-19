@@ -37,4 +37,3 @@ icon=icons/icon.png
 
 experimental=True
 deprecated=False
-
