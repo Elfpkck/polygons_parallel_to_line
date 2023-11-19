@@ -8,20 +8,20 @@ on:
     - reopened
     - ready_for_review
 jobs:
-#  precommit:
-#    name: Static Analysis/Linting/Prettifier
-#    runs-on: ubuntu-latest
-#    if: ${{ github.event.pull_request.draft == false && github.actor != 'dependabot[bot]' }}
-#    steps:
-#    - uses: actions/checkout@v4.1.1
-#      with:
-#        fetch-depth: 0
-#    - uses: actions/setup-python@v4
-#      with:
-#        python-version: 3.9
-#    - uses: pre-commit/action@v3.0.0
-#      with:
-#        extra_args: --color=always --from-ref ${{ github.event.pull_request.base.sha }} --to-ref ${{ github.event.pull_request.head.sha }}
+  precommit:
+    name: Static Analysis/Linting/Prettifier
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.draft == false && github.actor != 'dependabot[bot]' }}
+    steps:
+    - uses: actions/checkout@v4.1.1
+      with:
+        fetch-depth: 0
+    - uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+    - uses: pre-commit/action@v3.0.0
+      with:
+        extra_args: --color=always --from-ref ${{ github.event.pull_request.base.sha }} --to-ref ${{ github.event.pull_request.head.sha }}
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
