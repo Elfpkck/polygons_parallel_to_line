@@ -1,4 +1,15 @@
 repos:
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v1.7.0
+  hooks:
+  - id: mypy
+    name: Lint code (mypy)
+    language: python
+    types: [python]
+    require_serial: true
+    args: [--config-file=pyproject.toml]
+    additional_dependencies: [qgis-stubs]
+    exclude: (.*/plugin\.py)|(.*/provider\.py)|(.*/test.*)|(polygons_parallel_to_line/__init__\.py)
 - repo: https://github.com/timothycrosley/isort
   rev: 5.12.0
   hooks:

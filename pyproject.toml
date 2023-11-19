@@ -12,6 +12,15 @@ src_paths = ["./"]
 known_third_party = []
 known_first_party = []
 
+[tool.mypy]
+follow_imports = "silent"
+ignore_missing_imports = false
+warn_return_any = true
+namespace_packages = true
+explicit_package_bases = true
+disallow_untyped_defs = true
+exclude = ['.*/plugin.py', '.*/provider.py', '.*/test.*', 'polygons_parallel_to_line/__init__.py']
+
 [tool.poetry]
 name = "polygons-parallel-to-line"
 version = "0.1.0"

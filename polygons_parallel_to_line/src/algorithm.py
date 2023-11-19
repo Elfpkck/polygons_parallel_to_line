@@ -13,7 +13,7 @@ from qgis.core import (
     QgsProcessingParameterFeatureSource,
     QgsProcessingParameterNumber,
 )
-from qgis.PyQt.QtCore import QVariant
+from qgis.PyQt.QtCore import QVariant  # type: ignore
 
 from .pptl import Params, PolygonsParallelToLine
 
@@ -126,8 +126,8 @@ class Algorithm(QgsProcessingAlgorithm):
 
         ret = {self.OUTPUT_LAYER: dest_id}
         if os.getenv("PPTL_TEST"):  # for testing purposes
-            output_layer = context.getMapLayer(dest_id)
-            ret["result_wkt"] = [x.geometry().asWkt() for x in output_layer.getFeatures()]
-            ret["_rotated"] = [1 if x[self.COLUMN_NAME] == 1 else 0 for x in output_layer.getFeatures()]
+            output_layer = context.getMapLayer(dest_id)  # type: ignore
+            ret["result_wkt"] = [x.geometry().asWkt() for x in output_layer.getFeatures()]  # type: ignore
+            ret["_rotated"] = [1 if x[self.COLUMN_NAME] == 1 else 0 for x in output_layer.getFeatures()]  # type: ignore
 
         return ret

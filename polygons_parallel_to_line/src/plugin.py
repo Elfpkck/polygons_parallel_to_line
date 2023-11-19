@@ -13,7 +13,7 @@ if cmd_folder not in sys.path:
 
 
 class Plugin:
-    def __init__(self):
+    def __init__(self) -> None:
         self.provider = None
 
     def initProcessing(self) -> None:
