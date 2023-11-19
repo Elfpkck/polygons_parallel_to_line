@@ -5,10 +5,11 @@ services:
     build:
       dockerfile: Dockerfile
     image: img_app:tag
+    container_name: qgis_pptl
     volumes:
-      - type: bind
-        source: .
-        target: /pptl
+    - type: bind
+      source: .
+      target: /pptl
     environment:
-      - PYTHONPATH=/pptl
-      - PPTL_TEST=1
+    - PYTHONPATH=/pptl
+    - PPTL_TEST=1
