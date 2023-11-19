@@ -1,17 +1,23 @@
 [general]
 name=Polygons Parallel to Line
-qgisMinimumVersion=2.0
-description=This plugin rotates polygons parallel to line
-version=0.3
-author=Andrey Lekarev
+qgisMinimumVersion=3.0
+description=This plugin rotates polygons parallel to the lines
+version=1.0
+author=Andrii Liekariev
 email=elfpkck@gmail.com
+hasProcessingProvider=yes
 
-about=This plugin rotates all or only selected polygons within chosen distance (from line to polygon centroid) parallel to the nearest line segment if angle <= chosen angle value. May be useful when working with streets and buildings. It is strongly recommended that you check your data for geometry errors before using the plugin. Full description can be found at https://github.com/Elfpkck/polygons_parallel_to_line/blob/master/README.md
+about=This plugin rotates polygons parallel to the nearest line segment. Can be useful when working with streets and buildings. Before using the plugin, we strongly recommend checking your data for geometric errors. A full description can be found at https://elfpkck.github.io/polygons_parallel_to_line/
 
 tracker=https://github.com/Elfpkck/polygons_parallel_to_line/issues
 repository=https://github.com/Elfpkck/polygons_parallel_to_line
 
-changelog=0.3
+changelog=
+    1.0
+        - QGIS3 support
+        - fixed bugs
+        - added tests
+    0.3
         - migrated to Processing algorithms; full refactoring
         - much faster
         - possibility to write to the new layer all or only selected polygons
@@ -25,10 +31,9 @@ changelog=0.3
 
 tags=polygon, line, vector, parallel, rotating
 
-homepage=https://github.com/Elfpkck/polygons_parallel_to_line
-category=Analysis
+homepage=https://elfpkck.github.io/polygons_parallel_to_line/
+category=Vector
 icon=icons/icon.png
 
 experimental=True
 deprecated=False
-
