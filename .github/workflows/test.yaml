@@ -24,7 +24,7 @@ jobs:
         extra_args: --color=always --from-ref ${{ github.event.pull_request.base.sha }} --to-ref ${{ github.event.pull_request.head.sha }}
   unit-tests:
     name: Unit Tests
-    runs-on: qgis/qgis:release-3_30
+    runs-on: qgis/qgis:latest
     if: ${{ github.event.pull_request.draft == false && github.actor != 'dependabot[bot]' }}
     steps:
     - name: Checkout code
