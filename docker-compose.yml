@@ -1,0 +1,15 @@
+version: '3.5'
+
+services:
+  qgis:
+    build:
+      dockerfile: Dockerfile
+    image: img_app:tag
+    container_name: qgis_pptl
+    volumes:
+    - type: bind
+      source: .
+      target: /pptl
+    environment:
+    - PYTHONPATH=/pptl
+    - PPTL_TEST=1

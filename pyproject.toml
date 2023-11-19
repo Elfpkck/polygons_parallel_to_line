@@ -1,0 +1,42 @@
+[tool.black]
+line-length = 120
+
+[tool.isort]
+multi_line_output = 3
+include_trailing_comma = true
+profile = "black"
+combine_as_imports = true
+force_alphabetical_sort_within_sections = true
+lines_between_types = 0
+src_paths = ["./"]
+known_third_party = []
+known_first_party = []
+
+[tool.mypy]
+follow_imports = "silent"
+ignore_missing_imports = false
+warn_return_any = true
+namespace_packages = true
+explicit_package_bases = true
+disallow_untyped_defs = true
+exclude = ['.*/plugin.py', '.*/provider.py', '.*/test.*', 'polygons_parallel_to_line/__init__.py']
+
+[tool.poetry]
+name = "polygons-parallel-to-line"
+version = "0.1.0"
+description = ""
+authors = ["Andrii Liekariev <elfpkck@gmail.com>"]
+readme = "README.md"
+packages = [{include = "polygons_parallel_to_line"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.5"
+pydevd-pycharm = "*"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
