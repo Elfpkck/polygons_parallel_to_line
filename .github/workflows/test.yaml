@@ -34,4 +34,4 @@ jobs:
     - name: Launching docker compose
       run: docker compose -f docker-compose.yml up -d --force-recreate --remove-orphans
     - name: Running tests
-      run: docker exec -t qgis_pptl sh -c "pytest /pptl/tests"
+      run: docker exec -t qgis_pptl sh -c "pytest /pptl/tests --qgis_disable_gui"
