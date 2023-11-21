@@ -1,0 +1,28 @@
+version: 2
+updates:
+- package-ecosystem: github-actions
+  directory: /
+  schedule:
+    interval: monthly
+    time: 03:05
+    timezone: UTC
+  open-pull-requests-limit: 10
+  reviewers:
+  - Elfpkck
+  assignees:
+  - Elfpkck
+  labels:
+  - ci
+
+- package-ecosystem: docker
+  directory: /
+  schedule:
+    interval: monthly
+    time: 03:10
+    timezone: UTC
+  reviewers:
+  - Elfpkck
+  assignees:
+  - Elfpkck
+  labels:
+  - ci
