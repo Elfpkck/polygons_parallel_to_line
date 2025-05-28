@@ -1,4 +1,5 @@
-[![PR Validation](https://github.com/Elfpkck/polygons_parallel_to_line/actions/workflows/test.yaml/badge.svg)](https://github.com/Elfpkck/polygons_parallel_to_line/actions/workflows/test.yaml)
+[![PR Validation](https://github.com/Elfpkck/polygons_parallel_to_line/actions/workflows/test.yaml/badge.svg?event=pull_request
+)](https://github.com/Elfpkck/polygons_parallel_to_line/actions/workflows/test.yaml)
 # Polygons Parallel to Line
 ## General description and demonstration
 Depending on the settings, the plugin rotates the polygons in such a way that
