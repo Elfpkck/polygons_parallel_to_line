@@ -1,2 +1,2 @@
 FROM qgis/qgis:latest
-RUN pip install --no-cache-dir pytest-qgis
+RUN pip install --no-cache-dir --break-system-packages pytest-qgis
