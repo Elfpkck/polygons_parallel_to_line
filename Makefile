@@ -1,10 +1,8 @@
 .PHONY: build run test stop clean
 
-# Build the Docker image
 build:
 	docker build -t qgis-for-pptl:ci -f Dockerfile .
 
-# Run the Docker container
 run:
 	docker run -d --name qgis_pptl \
 		-v "$(shell pwd):/pptl" \
@@ -13,14 +11,14 @@ run:
 		qgis-for-pptl:ci \
 		tail -f /dev/null
 
-# Run tests in the container
 test:
 	docker exec -t qgis_pptl sh -c "pytest /pptl/tests --qgis_disable_gui"
 
-# Stop the container
+test-coverage:
+	docker exec -t qgis_pptl sh -c "pytest /pptl/tests --qgis_disable_gui --cov=pptl --cov-branch --cov-report=term-missing:skip-covered --cov-report=xml"
+
 stop:
 	docker stop qgis_pptl
 
-# Remove the container
 clean: stop
 	docker rm qgis_pptl
