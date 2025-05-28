@@ -15,7 +15,7 @@ test:
 	docker exec -t qgis_pptl sh -c "pytest /pptl/tests --qgis_disable_gui"
 
 test-coverage:
-	docker exec -t qgis_pptl sh -c "pytest /pptl/tests --qgis_disable_gui --cov=pptl --cov-branch --cov-report=term-missing:skip-covered --cov-report=xml"
+	docker exec -t qgis_pptl sh -c "pytest /pptl/tests --qgis_disable_gui --cov=pptl --cov-branch --cov-report=term-missing:skip-covered --cov-report=xml:/pptl/coverage.xml"
 
 stop:
 	docker stop qgis_pptl
