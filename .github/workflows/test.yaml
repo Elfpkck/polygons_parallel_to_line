@@ -41,6 +41,7 @@ jobs:
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+        slug: Elfpkck/polygons_parallel_to_line
         fail_ci_if_error: false
     - name: Cleanup
       if: always()
