@@ -35,8 +35,13 @@ jobs:
       run: make build
     - name: Start Docker container
       run: make run
-    - name: Running tests
-      run: make test
+    - name: Running tests with coverage
+      run: make test-coverage
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        fail_ci_if_error: false
     - name: Cleanup
       if: always()
       run: make clean
