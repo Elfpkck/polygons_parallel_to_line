@@ -43,7 +43,6 @@ jobs:
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        slug: Elfpkck/polygons_parallel_to_line
         fail_ci_if_error: false
         override_branch: main
     - name: Upload test results to Codecov
@@ -51,6 +50,8 @@ jobs:
       uses: codecov/test-results-action@v1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+        fail_ci_if_error: false
+        override_branch: main
     - name: Cleanup
       if: always()
       run: make clean
