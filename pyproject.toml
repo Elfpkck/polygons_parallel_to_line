@@ -1,6 +1,24 @@
 [tool.black]
 line-length = 120
 
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+exclude_also = [
+    "if TYPE_CHECKING",
+    "@(abc\\.)?abstractmethod",
+    "raise NotImplementedError",
+
+    "if .*PPTL_TEST",
+    "def classFactory",
+    'return "pptl_algo"',
+    'return "Polygons parallel to the lines"',
+    'return "Algorithms for vector layers"',
+    'return "pptl_group"',
+    'return "This plugin rotates polygons parallel to the lines"',
+    ]
+
 [tool.isort]
 multi_line_output = 3
 include_trailing_comma = true
