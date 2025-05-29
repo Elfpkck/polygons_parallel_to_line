@@ -35,6 +35,8 @@ jobs:
       run: make build
     - name: Start Docker container
       run: make run
+    - name: Install dependencies
+      run: make install-ci
     - name: Running tests with coverage
       run: make test-coverage
     - name: Upload coverage reports to Codecov
