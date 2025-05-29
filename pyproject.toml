@@ -51,7 +51,7 @@ packages = [{include = "polygons_parallel_to_line"}]
 python = "^3.9"
 
 [tool.poetry.group.ci.dependencies]
-pre-commit = "3.5"
+pre-commit = "4.2.0"
 pytest-cov = "6.1.1"
 pytest-qgis = "2.1.0"
 
