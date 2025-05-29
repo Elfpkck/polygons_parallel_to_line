@@ -1,2 +1,11 @@
 FROM qgis/qgis:latest
-RUN pip install --no-cache-dir --break-system-packages pytest-qgis pydevd-pycharm pytest-cov
+
+# `--break-system-packages` allows installing poetry to system Python
+# `system-site-packages` is required to access QGIS libraries from the virtual environment (qgis not in PyPI)
+RUN pip install --no-cache-dir --break-system-packages poetry && \
+    poetry config virtualenvs.options.system-site-packages true && \
+    poetry config installer.max-workers 10  && \
+    poetry config installer.parallel true
+
+# Keep container running for exec commands from Makefile
+CMD ["tail", "-f", "/dev/null"]
