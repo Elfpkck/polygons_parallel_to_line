@@ -26,3 +26,18 @@ updates:
       - "Elfpkck"
     labels:
       - "ci"
+
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      time: "03:15"
+      timezone: "UTC"
+    reviewers:
+      - "Elfpkck"
+    assignees:
+      - "Elfpkck"
+    labels:
+      - "dependencies"
+    allow:
+      - dependency-type: "direct"  # only update explicitly defined dependencies
