@@ -13,7 +13,7 @@ from qgis.core import (
     QgsProcessingParameterFeatureSource,
     QgsProcessingParameterNumber,
 )
-from qgis.PyQt.QtCore import QVariant  # type: ignore
+from qgis.PyQt.QtCore import QMetaType  # type: ignore
 
 from .pptl import Params, PolygonsParallelToLine
 
@@ -103,7 +103,7 @@ class Algorithm(QgsProcessingAlgorithm):
             if self.COLUMN_NAME == field.name():
                 continue
             new_fields.append(field)
-        new_fields.append(QgsField(self.COLUMN_NAME, QVariant.Int))
+        new_fields.append(QgsField(self.COLUMN_NAME, QMetaType.Int))
         sink, dest_id = self.parameterAsSink(
             parameters,
             self.OUTPUT_LAYER,
