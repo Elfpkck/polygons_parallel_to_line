@@ -11,9 +11,8 @@ if TYPE_CHECKING:
 
 
 class Line(ABC):
-    def __init__(self, geometry: QgsGeometry, is_multi: bool):
+    def __init__(self, geometry: QgsGeometry):
         self.geom = geometry
-        self.is_multi = is_multi
         self.polyline = self.get_polyline_xy()
 
     @abstractmethod
@@ -22,10 +21,6 @@ class Line(ABC):
 
     @abstractmethod
     def get_closest_segment(self, point: QgsPointXY) -> tuple[QgsPointXY, QgsPointXY]:
-        pass
-
-    @abstractmethod
-    def get_line_azimuth(self) -> float:
         pass
 
     @cached_property
@@ -64,20 +59,17 @@ class MultiLine(Line):
             line = QgsGeometry.fromPolyline([QgsPoint(x) for x in item])
             min_dist, _, greater_point_index, _ = line.closestSegmentWithContext(point)
             line_distances[min_dist] = (item, greater_point_index)
+        # TODO
+        if not line_distances:
+            raise ValueError("No line segments found in MultiLine")
 
         min_distance = min(line_distances)
         line_, end_index = line_distances[min_distance]
         return line_[end_index - 1], line_[end_index]
 
-    def get_line_azimuth(self) -> float:
-        """Not supposed to be used."""
-        raise NotImplementedError("MultiLine.get_line_azimuth() is not implemented")
-
 
 def line_factory(line_geometry: QgsGeometry) -> Line:
-    if line_geometry.isMultipart():
-        return MultiLine(line_geometry, is_multi=True)
-    return SimpleLine(line_geometry, is_multi=False)
+    return MultiLine(line_geometry) if line_geometry.isMultipart() else SimpleLine(line_geometry)
 
 
 class LineLayer:
@@ -89,6 +81,8 @@ class LineLayer:
 
     def get_closest_line(self, point: QgsPointXY) -> QgsFeature:
         closest_line_id = self.spatial_index.nearestNeighbor(point, 1)
+        if not closest_line_id:
+            raise ValueError(f"No lines found near point {point}")
         return self.id_line_map[closest_line_id[0]]
 
     def get_closest_line_geom(self, point: QgsPointXY) -> Line:

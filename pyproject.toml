@@ -8,9 +8,7 @@ branch = true
 exclude_also = [
     "if TYPE_CHECKING",
     "@(abc\\.)?abstractmethod",
-    "raise NotImplementedError",
-
-    "if .*PPTL_TEST",
+    # TODO: proper test instead
     "def classFactory",
     'return "pptl_algo"',
     'return "Polygons parallel to the lines"',

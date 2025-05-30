@@ -11,9 +11,10 @@ from qgis.core import (
     QgsProcessingFeatureSource,
 )
 
+from .azimuth import calculate_delta_azimuth
 from .line import LineLayer
 from .polygon import polygon_factory
-from .rotator import DeltaAzimuth, PolygonRotator
+from .rotator import PolygonRotator
 
 if TYPE_CHECKING:
     from qgis.core import QgsProcessingFeedback
@@ -53,52 +54,62 @@ class PolygonsParallelToLine:
 
     def rotate_polygons(self) -> None:
         total = 100.0 / self.total_number
-        processed_polygons = []
 
         for i, polygon in enumerate(self.params.polygon_layer.getFeatures(), start=1):
             if self.feedback.isCanceled():
                 break
 
-            processed_polygons.append(self.rotate_polygon(polygon))
+            processed_polygon = self.process_polygon(polygon)
+            self.params.sink.addFeature(processed_polygon, QgsFeatureSink.FastInsert)
             self.feedback.setProgress(int(i * total))
 
-        self.params.sink.addFeatures(processed_polygons, QgsFeatureSink.FastInsert)
-
-    def rotate_polygon(self, polygon: QgsFeature) -> QgsFeature:
+    def process_polygon(self, polygon: QgsFeature) -> QgsFeature:
         poly = polygon_factory(polygon)
         line_layer = LineLayer(self.params.line_layer)
         line = line_layer.get_closest_line_geom(poly.center)
         distance = line.get_distance(poly.geom)
 
         if (self.params.distance and distance > self.params.distance) or (self.params.no_multi and poly.is_multi):
-            return self.get_new_feature(poly, rotation_check=False)
+            return self.create_new_feature(poly, is_rotated=False)
 
         closest_part = poly.get_closest_part(line.geom)
         edge_1, edge_2 = closest_part.get_closest_edges()
-        # this 2 azimuths FROM the closest vertex TO the next and TO the previous vertexes
+        # Azimuths from the closest vertex pointing to adjacent vertices (next and previous)
         edge_1_azimuth, edge_2_azimuth = edge_1.get_line_azimuth(), edge_2.get_line_azimuth()
         line_segment_azimuth = line.get_closest_segment_azimuth(closest_part.closest_vertex)
-        delta1 = DeltaAzimuth(line_segment_azimuth, edge_1_azimuth).delta_azimuth
-        delta2 = DeltaAzimuth(line_segment_azimuth, edge_2_azimuth).delta_azimuth
+        delta1 = calculate_delta_azimuth(line_segment_azimuth, edge_1_azimuth)
+        delta2 = calculate_delta_azimuth(line_segment_azimuth, edge_2_azimuth)
         rotator = PolygonRotator(poly, delta1, delta2)
-        self.rotate(rotator, edge_1, edge_2)
-        return self.get_new_feature(rotator.poly, rotator.rotation_check)
+        self.rotate(rotator, edge_1, edge_2)  # TODO: why rotate method in this class and not in rotator?
+        return self.create_new_feature(rotator.poly, rotator.is_rotated)
 
     def rotate(self, rotator: PolygonRotator, edge_1: Line, edge_2: Line) -> None:
-        if abs(rotator.delta1) <= self.params.angle >= abs(rotator.delta2):
+        if abs(rotator.delta1) <= self.params.angle and abs(rotator.delta2) <= self.params.angle:
             if self.params.by_longest:
                 return rotator.rotate_by_longest_edge(edge_1.length, edge_2.length)
-            return rotator.rotate_by_lower_angle()
+            return rotator.rotate_by_smallest_angle()
 
         for delta in (rotator.delta1, rotator.delta2):
             if abs(delta) <= self.params.angle:
                 return rotator.rotate_by_angle(delta)
 
-    def get_new_feature(self, poly: Polygon, rotation_check: bool) -> QgsFeature:
+    def create_new_feature(self, poly: Polygon, is_rotated: bool = False) -> QgsFeature:
+        """
+        Creates a new QgsFeature from a Polygon object.
+
+        Args:
+            poly: The Polygon object to convert to a QgsFeature
+            is_rotated: Flag indicating if the polygon has been rotated
+
+        Returns:
+            A new QgsFeature with geometry and attributes from the Polygon
+        """
         new_feature = QgsFeature(self.params.fields)
         new_feature.setGeometry(poly.geom)
         attrs = poly.poly.attributes()
-        if rotation_check:
-            attrs.append(1)
+
+        if is_rotated:
+            attrs.append(1)  # Add 1 if the polygon was rotated
+
         new_feature.setAttributes(attrs)
         return new_feature

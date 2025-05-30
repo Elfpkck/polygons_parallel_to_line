@@ -6,38 +6,12 @@ if TYPE_CHECKING:
     from .polygon import Polygon
 
 
-class DeltaAzimuth:
-    def __init__(self, segment_azimuth: float, line_azimuth: float):
-        self.segment_azimuth = segment_azimuth
-        self.line_azimuth = line_azimuth
-        delta_azimuth = self.as_positive_azimuth(segment_azimuth) - self.as_positive_azimuth(line_azimuth)
-        self.delta_azimuth = self.as_less_than_90_azimuth(delta_azimuth)
-
-    @staticmethod
-    def as_positive_azimuth(azimuth: float) -> float:
-        """Make azimuth positive (same semicircle directions)."""
-        if azimuth == -180:
-            azimuth = 180
-        elif azimuth < 0:
-            azimuth += 180
-        return azimuth
-
-    @staticmethod
-    def as_less_than_90_azimuth(azimuth: float) -> float:
-        """Make abs(azimuth) < 90."""
-        if azimuth > 90:
-            azimuth -= 180
-        elif azimuth < -90:
-            azimuth += 180
-        return azimuth
-
-
 class PolygonRotator:
     def __init__(self, poly: Polygon, delta1: float, delta2: float):
         self.poly = poly
         self.delta1 = delta1
         self.delta2 = delta2
-        self.rotation_check = False
+        self.is_rotated = False
 
     def rotate_by_angle(self, angle: float) -> None:
         """QgsGeometry.rotate() takes any positive and negative values. Positive - rotate clockwise,
@@ -45,15 +19,20 @@ class PolygonRotator:
         """
         self.poly.geom.rotate(angle, self.poly.center)
         self.poly.poly.setGeometry(self.poly.geom)
-        self.rotation_check = True
+        self.is_rotated = True
 
     def rotate_by_longest_edge(self, length1: float, length2: float) -> None:
+        """Rotates the polygon based on the longest edge. If edges are equal length, falls back to rotating by
+        the smallest angle.
+        """
         if length1 > length2:
             self.rotate_by_angle(self.delta1)
         elif length1 < length2:
             self.rotate_by_angle(self.delta2)
         else:
-            self.rotate_by_lower_angle()
+            self.rotate_by_smallest_angle()
 
-    def rotate_by_lower_angle(self) -> None:
-        self.rotate_by_angle(self.delta2) if abs(self.delta1) > abs(self.delta2) else self.rotate_by_angle(self.delta1)
+    def rotate_by_smallest_angle(self) -> None:
+        """Rotates the polygon by the angle with the smallest absolute value."""
+        angle = self.delta2 if abs(self.delta1) > abs(self.delta2) else self.delta1
+        self.rotate_by_angle(angle)

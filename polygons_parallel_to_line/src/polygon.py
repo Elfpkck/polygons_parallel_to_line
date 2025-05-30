@@ -5,12 +5,10 @@ from typing import TYPE_CHECKING
 
 from qgis.core import QgsGeometry, QgsPoint
 
-from .line import line_factory
+from .line import SimpleLine
 
 if TYPE_CHECKING:
     from qgis.core import QgsFeature, QgsPointXY
-
-    from .line import Line
 
 
 class ClosestPolygonPart:
@@ -26,59 +24,71 @@ class ClosestPolygonPart:
             distance_to_line = vertex_geom.distance(self.closest_line_geom)
             vertexes[distance_to_line] = (i, vertex)
 
+        if not vertexes:  # TODO: check all new raises
+            raise ValueError("No vertices found in polygon part")
+
         min_distance = min(vertexes)
         closest_vertex_index, closest_vertex = vertexes[min_distance]
         return min_distance, closest_vertex_index, closest_vertex
 
-    def get_closest_edges(self) -> tuple[Line, Line]:
-        start = QgsPoint(self.closest_vertex)
-
+    def get_closest_edges(self) -> tuple[SimpleLine, SimpleLine]:
         if self.closest_vertex_index == 0:  # if vertex is first
-            edge1 = QgsGeometry.fromPolyline([start, QgsPoint(self.vertexes[1])])
-            edge2 = QgsGeometry.fromPolyline([start, QgsPoint(self.vertexes[-1])])
+            edge_1_end_idx, edge_2_end_idx = 1, -1
         elif self.closest_vertex_index == len(self.vertexes) - 1:  # if vertex is last
-            edge1 = QgsGeometry.fromPolyline([start, QgsPoint(self.vertexes[0])])
-            edge2 = QgsGeometry.fromPolyline([start, QgsPoint(self.vertexes[-2])])
+            edge_1_end_idx, edge_2_end_idx = 0, -2
         else:
-            edge1 = QgsGeometry.fromPolyline([start, QgsPoint(self.vertexes[self.closest_vertex_index + 1])])
-            edge2 = QgsGeometry.fromPolyline([start, QgsPoint(self.vertexes[self.closest_vertex_index - 1])])
-        return line_factory(edge1), line_factory(edge2)
+            edge_1_end_idx, edge_2_end_idx = self.closest_vertex_index + 1, self.closest_vertex_index - 1
+
+        start = QgsPoint(self.closest_vertex)
+        edge_1 = QgsGeometry.fromPolyline([start, QgsPoint(self.vertexes[edge_1_end_idx])])
+        edge_2 = QgsGeometry.fromPolyline([start, QgsPoint(self.vertexes[edge_2_end_idx])])
+        return SimpleLine(edge_1), SimpleLine(edge_2)
 
 
 class Polygon(abc.ABC):
-    def __init__(self, polygon: QgsFeature, *, is_multi: bool):
+    def __init__(self, polygon: QgsFeature):
         self.poly = polygon
-        self.is_multi = is_multi
+        self.is_multi = self._initialize_is_multi()
         self.geom = polygon.geometry()
         self.center = self.geom.centroid().asPoint()
         self.vertexes = self.get_vertexes()
 
     @abc.abstractmethod
+    def _initialize_is_multi(self) -> bool:
+        """Return the value for is_multi"""
+
+    @abc.abstractmethod
     def get_vertexes(self) -> list[list[QgsPointXY]]:
-        """Without the last vertex which is the same as the first one."""
+        """Without the last vertex, which is the same as the first one."""
 
     def get_closest_part(self, closest_line_geom: QgsGeometry) -> ClosestPolygonPart:
-        """If polygon is multipart, return the closest vertex from all parts."""
+        """If the polygon is multipart, return the closest vertex from all parts."""
         polygon_parts = {}
         for part in self.vertexes:
             polygon_part = ClosestPolygonPart(part, closest_line_geom)
             polygon_parts[polygon_part.distance] = polygon_part
 
+        if not polygon_parts:
+            raise ValueError("No polygon parts found")
+
         return polygon_parts[min(polygon_parts)]
 
 
-class SimplePolygone(Polygon):
+class SimplePolygon(Polygon):
+    def _initialize_is_multi(self) -> bool:
+        return False
+
     def get_vertexes(self) -> list[list[QgsPointXY]]:
         return [self.geom.asPolygon()[0][:-1]]
 
 
 class MultiPolygon(Polygon):
+    def _initialize_is_multi(self) -> bool:
+        return True
+
     def get_vertexes(self) -> list[list[QgsPointXY]]:
         return [part[0][:-1] for part in self.geom.asMultiPolygon()]
 
 
 def polygon_factory(polygon: QgsFeature) -> Polygon:
-    if polygon.geometry().isMultipart():
-        return MultiPolygon(polygon, is_multi=True)
-    else:
-        return SimplePolygone(polygon, is_multi=False)
+    return MultiPolygon(polygon) if polygon.geometry().isMultipart() else SimplePolygon(polygon)

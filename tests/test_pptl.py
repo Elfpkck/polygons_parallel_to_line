@@ -9,6 +9,18 @@ from qgis.core import (
 
 from polygons_parallel_to_line.src.algorithm import Algorithm
 
+
+# TODO: any more elegant solution?
+class PatchedAlgorithm(Algorithm):
+    def processAlgorithm(self, parameters, context, feedback):  # noqa: N802
+        ret = super().processAlgorithm(parameters, context, feedback)
+        dest_id = list(ret.values())[0]
+        output_layer = context.getMapLayer(dest_id)
+        ret["result_wkt"] = [x.geometry().asWkt() for x in output_layer.getFeatures()]
+        ret["_rotated"] = [1 if x[self.COLUMN_NAME] == 1 else 0 for x in output_layer.getFeatures()]
+        return ret
+
+
 LINES = (
     "LineString (3569791.65918140485882759 6347785.93876876402646303, 3569817.29298910731449723 6347770.60050677787512541, 3569817.92332864087074995 6347761.98586648423224688)",
     "MultiLineString ((3569750.02604898577556014 6347792.64984573982656002, 3569750.17273568129166961 6347769.28457224369049072, 3569726.80746218701824546 6347769.13788554817438126, 3569726.66077548963949084 6347792.50315904431045055, 3569750.02604898577556014 6347792.64984573982656002))",
@@ -151,7 +163,7 @@ def test_pptl(
         "ANGLE": angle,
         "OUTPUT": QgsProcessingOutputLayerDefinition("TEMPORARY_OUTPUT"),
     }
-    result = processing.run(Algorithm(), params)
+    result = processing.run(PatchedAlgorithm(), params)
 
     for res, exp in zip(result["result_wkt"], expected):
         assert QgsGeometry.compare(converter(res), converter(exp), 0.0000001)

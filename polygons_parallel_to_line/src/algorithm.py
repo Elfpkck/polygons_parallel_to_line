@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from typing import Any, Optional, TYPE_CHECKING
 
 from qgis.core import (
@@ -18,7 +17,11 @@ from qgis.PyQt.QtCore import QMetaType  # type: ignore
 from .pptl import Params, PolygonsParallelToLine
 
 if TYPE_CHECKING:
-    from qgis.core import QgsProcessingContext, QgsProcessingFeedback
+    from qgis.core import (
+        QgsProcessingContext,
+        QgsProcessingFeatureSource,
+        QgsProcessingFeedback,
+    )
 
 
 class Algorithm(QgsProcessingAlgorithm):
@@ -94,21 +97,39 @@ class Algorithm(QgsProcessingAlgorithm):
             )
         )
 
+    def _create_output_fields(self, source_layer: QgsProcessingFeatureSource) -> QgsFields:
+        """
+        Create output fields for the sink layer.
+
+        Copies all fields from the source layer except the rotation field if it exists,
+        then adds the rotation field to store rotation status.
+
+        Args:
+            source_layer: The source layer to copy fields from
+
+        Returns:
+            QgsFields object containing the fields for the output layer
+        """
+        output_fields = QgsFields()
+
+        for field in source_layer.fields():
+            if self.COLUMN_NAME == field.name():
+                continue
+            output_fields.append(field)
+
+        output_fields.append(QgsField(self.COLUMN_NAME, QMetaType.Int))
+        return output_fields
+
     def processAlgorithm(  # noqa: N802
         self, parameters: dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> dict[str, str]:
-        new_fields = QgsFields()
         polygon_layer = self.parameterAsSource(parameters, self.POLYGON_LAYER, context)
-        for field in polygon_layer.fields():
-            if self.COLUMN_NAME == field.name():
-                continue
-            new_fields.append(field)
-        new_fields.append(QgsField(self.COLUMN_NAME, QMetaType.Int))
+        output_fields = self._create_output_fields(polygon_layer)
         sink, dest_id = self.parameterAsSink(
             parameters,
             self.OUTPUT_LAYER,
             context,
-            new_fields,
+            output_fields,
             polygon_layer.wkbType(),
             polygon_layer.sourceCrs(),
         )
@@ -119,15 +140,8 @@ class Algorithm(QgsProcessingAlgorithm):
             no_multi=self.parameterAsBool(parameters, self.NO_MULTI, context),
             distance=self.parameterAsDouble(parameters, self.DISTANCE, context),
             angle=self.parameterAsDouble(parameters, self.ANGLE, context),
-            fields=new_fields,
+            fields=output_fields,
             sink=sink,
         )
         PolygonsParallelToLine(feedback, params).run()
-
-        ret = {self.OUTPUT_LAYER: dest_id}
-        if os.getenv("PPTL_TEST"):  # for testing purposes
-            output_layer = context.getMapLayer(dest_id)  # type: ignore
-            ret["result_wkt"] = [x.geometry().asWkt() for x in output_layer.getFeatures()]  # type: ignore
-            ret["_rotated"] = [1 if x[self.COLUMN_NAME] == 1 else 0 for x in output_layer.getFeatures()]  # type: ignore
-
-        return ret
+        return {self.OUTPUT_LAYER: dest_id}
