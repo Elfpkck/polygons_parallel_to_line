@@ -11,7 +11,16 @@ class PolygonRotator:
         self.poly = poly
         self.delta1 = delta1
         self.delta2 = delta2
-        self.is_rotated = False
+
+    def rotate(self, edge1_len: float, edge2_len: float, angle_threshold: float, by_longest: bool) -> None:
+        if abs(self.delta1) <= angle_threshold and abs(self.delta2) <= angle_threshold:
+            if by_longest:
+                return self.rotate_by_longest_edge(edge1_len, edge2_len)
+            return self.rotate_by_smallest_angle()
+
+        for delta in (self.delta1, self.delta2):
+            if abs(delta) <= angle_threshold:
+                return self.rotate_by_angle(delta)
 
     def rotate_by_angle(self, angle: float) -> None:
         """QgsGeometry.rotate() takes any positive and negative values. Positive - rotate clockwise,
@@ -19,7 +28,7 @@ class PolygonRotator:
         """
         self.poly.geom.rotate(angle, self.poly.center)
         self.poly.poly.setGeometry(self.poly.geom)
-        self.is_rotated = True
+        self.poly.is_rotated = True
 
     def rotate_by_longest_edge(self, length1: float, length2: float) -> None:
         """Rotates the polygon based on the longest edge. If edges are equal length, falls back to rotating by

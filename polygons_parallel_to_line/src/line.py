@@ -32,7 +32,7 @@ class Line(ABC):
         start, end = self.get_closest_segment(point)
         return start.azimuth(end)
 
-    def get_distance(self, geom: QgsGeometry) -> float:
+    def calc_distance(self, geom: QgsGeometry) -> float:
         return self.geom.distance(geom)
 
 

@@ -40,7 +40,7 @@ def normalize_azimuth_to_90_range(azimuth: float) -> float:
     return azimuth
 
 
-def calculate_delta_azimuth(segment_azimuth: float, line_azimuth: float) -> float:
+def calc_delta_azimuth(segment_azimuth: float, line_azimuth: float) -> float:
     return normalize_azimuth_to_90_range(
         normalize_azimuth_to_positive_range(segment_azimuth) - normalize_azimuth_to_positive_range(line_azimuth)
     )
