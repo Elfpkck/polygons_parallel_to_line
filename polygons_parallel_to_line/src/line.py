@@ -36,7 +36,7 @@ class Line(ABC):
         return self.geom.distance(geom)
 
 
-class SimpleLine(Line):
+class SingleLine(Line):
     def get_polyline_xy(self) -> list[list[QgsPointXY]]:
         return [self.geom.asPolyline()]
 
@@ -72,7 +72,7 @@ class MultiLine(Line):
 
 
 def line_factory(line_geometry: QgsGeometry) -> Line:
-    return MultiLine(line_geometry) if line_geometry.isMultipart() else SimpleLine(line_geometry)
+    return MultiLine(line_geometry) if line_geometry.isMultipart() else SingleLine(line_geometry)
 
 
 class LineLayer:

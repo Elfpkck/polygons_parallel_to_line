@@ -6,16 +6,13 @@ from typing import TYPE_CHECKING
 
 from qgis.core import QgsGeometry, QgsPoint
 
-from .line import SimpleLine
+from .line import SingleLine
 
 if TYPE_CHECKING:
     from qgis.core import QgsFeature, QgsPointXY
 
 
-# TODO: a dataclasss/class for vertex?
-
-
-class ClosestPolygonPart:
+class ClosestSinglePolygon:
     def __init__(self, vertexes: list[QgsPointXY], closest_line_geom: QgsGeometry):
         self.vertexes = vertexes
         self.closest_line_geom = closest_line_geom
@@ -39,7 +36,7 @@ class ClosestPolygonPart:
         return min_distance, closest_vertex_index
 
     @cached_property
-    def closest_edges_pair(self) -> tuple[SimpleLine, SimpleLine]:
+    def closest_edges_pair(self) -> tuple[SingleLine, SingleLine]:
         if self.closest_vertex_index == len(self.vertexes) - 1:  # if vertex is last
             edge_1_end_idx, edge_2_end_idx = 0, -2
         else:
@@ -48,7 +45,7 @@ class ClosestPolygonPart:
         start = QgsPoint(self.closest_vertex)
         edge_1 = QgsGeometry.fromPolyline([start, QgsPoint(self.vertexes[edge_1_end_idx])])
         edge_2 = QgsGeometry.fromPolyline([start, QgsPoint(self.vertexes[edge_2_end_idx])])
-        return SimpleLine(edge_1), SimpleLine(edge_2)
+        return SingleLine(edge_1), SingleLine(edge_2)
 
 
 class Polygon(abc.ABC):
@@ -57,7 +54,7 @@ class Polygon(abc.ABC):
         self.is_multi = self._initialize_is_multi()
         self.geom = polygon.geometry()
         self.center = self.geom.centroid().asPoint()
-        self.vertexes = self.get_vertexes()  # TODO: rename. It's parts' vertexes
+        self.single_polygons_vertexes = self.as_single_polygons_vertexes()
         self.is_rotated = False
 
     @abc.abstractmethod
@@ -65,32 +62,32 @@ class Polygon(abc.ABC):
         """Return the value for is_multi"""
 
     @abc.abstractmethod
-    def get_vertexes(self) -> list[list[QgsPointXY]]:
+    def as_single_polygons_vertexes(self) -> list[list[QgsPointXY]]:
         """Without the last vertex, which is the same as the first one."""
 
-    def get_closest_part(self, closest_line_geom: QgsGeometry) -> ClosestPolygonPart:
+    def get_closest_part(self, closest_line_geom: QgsGeometry) -> ClosestSinglePolygon:
         """If the polygon is multipart, return the closest vertex from all parts."""  # TODO: docs
-        closest_part = None
+        closest_single_poly = None
         min_distance = float("inf")
 
-        for part in self.vertexes:
-            polygon_part = ClosestPolygonPart(part, closest_line_geom)
+        for single_poly_vertexes in self.single_polygons_vertexes:
+            single_poly = ClosestSinglePolygon(single_poly_vertexes, closest_line_geom)
 
-            if polygon_part.min_distance < min_distance:
-                closest_part = polygon_part
-                min_distance = polygon_part.min_distance
+            if single_poly.min_distance < min_distance:
+                closest_single_poly = single_poly
+                min_distance = single_poly.min_distance
 
-        if closest_part is None:  # TODO
+        if closest_single_poly is None:  # TODO
             raise ValueError("No parts found in the polygon")
 
-        return closest_part
+        return closest_single_poly
 
 
-class SimplePolygon(Polygon):
+class SinglePolygon(Polygon):
     def _initialize_is_multi(self) -> bool:
         return False
 
-    def get_vertexes(self) -> list[list[QgsPointXY]]:
+    def as_single_polygons_vertexes(self) -> list[list[QgsPointXY]]:
         return [self.geom.asPolygon()[0][:-1]]
 
 
@@ -98,9 +95,9 @@ class MultiPolygon(Polygon):
     def _initialize_is_multi(self) -> bool:
         return True
 
-    def get_vertexes(self) -> list[list[QgsPointXY]]:
+    def as_single_polygons_vertexes(self) -> list[list[QgsPointXY]]:
         return [part[0][:-1] for part in self.geom.asMultiPolygon()]
 
 
 def polygon_factory(polygon: QgsFeature) -> Polygon:
-    return MultiPolygon(polygon) if polygon.geometry().isMultipart() else SimplePolygon(polygon)
+    return MultiPolygon(polygon) if polygon.geometry().isMultipart() else SinglePolygon(polygon)
