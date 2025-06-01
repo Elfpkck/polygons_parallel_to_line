@@ -41,8 +41,8 @@ class SimpleLine(Line):
         return [self.geom.asPolyline()]
 
     def get_closest_segment(self, point: QgsPointXY) -> tuple[QgsPointXY, QgsPointXY]:
-        _, _, greater_point_index, _ = self.geom.closestSegmentWithContext(point)
-        return self.polyline[0][greater_point_index - 1], self.polyline[0][greater_point_index]
+        _, _, next_vertex_idx, _ = self.geom.closestSegmentWithContext(point)
+        return self.polyline[0][next_vertex_idx - 1], self.polyline[0][next_vertex_idx]
 
     def get_line_azimuth(self) -> float:
         return self.polyline[0][0].azimuth(self.polyline[0][1])
@@ -53,19 +53,22 @@ class MultiLine(Line):
         return self.geom.asMultiPolyline()
 
     def get_closest_segment(self, point: QgsPointXY) -> tuple[QgsPointXY, QgsPointXY]:
-        line_distances = {}
+        closest_line, next_vertex_idx = None, None
+        min_distance = float("inf")
 
-        for item in self.polyline:
-            line = QgsGeometry.fromPolyline([QgsPoint(x) for x in item])
-            min_dist, _, greater_point_index, _ = line.closestSegmentWithContext(point)
-            line_distances[min_dist] = (item, greater_point_index)
-        # TODO
-        if not line_distances:
-            raise ValueError("No line segments found in MultiLine")
+        for line in self.polyline:
+            line_geom = QgsGeometry.fromPolyline([QgsPoint(x) for x in line])
+            distance, _, current_next_vertex_idx, _ = line_geom.closestSegmentWithContext(point)
 
-        min_distance = min(line_distances)
-        line_, end_index = line_distances[min_distance]
-        return line_[end_index - 1], line_[end_index]
+            if distance < min_distance:
+                closest_line = line
+                next_vertex_idx = current_next_vertex_idx
+                min_distance = distance
+
+        if closest_line is None or next_vertex_idx is None:
+            raise ValueError(f"No lines found near point {point}")
+
+        return closest_line[next_vertex_idx - 1], closest_line[next_vertex_idx]
 
 
 def line_factory(line_geometry: QgsGeometry) -> Line:

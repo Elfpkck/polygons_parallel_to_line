@@ -11,7 +11,6 @@ from qgis.core import (
     QgsProcessingFeatureSource,
 )
 
-from .azimuth import calc_delta_azimuth
 from .line import LineLayer
 from .polygon import polygon_factory
 from .rotator import PolygonRotator
@@ -71,17 +70,7 @@ class PolygonsParallelToLine:
         if (self.params.distance and distance > self.params.distance) or (self.params.no_multi and poly.is_multi):
             return self.create_new_feature(poly)
 
-        closest_poly_part = poly.get_closest_part(closest_line.geom)
-        edge_1, edge_2 = closest_poly_part.closest_edges_pair
-        # Azimuths from the closest vertex pointing to adjacent vertices (next and previous)
-        edge_1_azimuth, edge_2_azimuth = edge_1.get_line_azimuth(), edge_2.get_line_azimuth()
-        line_segment_azimuth = closest_line.get_closest_segment_azimuth(closest_poly_part.closest_vertex)
-        delta1 = calc_delta_azimuth(line_segment_azimuth, edge_1_azimuth)
-        delta2 = calc_delta_azimuth(line_segment_azimuth, edge_2_azimuth)
-        # TODO: args
-        PolygonRotator(poly, delta1, delta2).rotate(
-            edge_1.length, edge_2.length, self.params.angle, self.params.by_longest
-        )
+        PolygonRotator(poly, closest_line, self.params.angle, self.params.by_longest).rotate()
         return self.create_new_feature(poly)
 
     def create_new_feature(self, poly: Polygon) -> QgsFeature:
