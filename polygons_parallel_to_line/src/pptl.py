@@ -12,13 +12,11 @@ from qgis.core import (
 )
 
 from .line import LineLayer
-from .polygon import polygon_factory
+from .polygon import Polygon
 from .rotator import PolygonRotator
 
 if TYPE_CHECKING:
     from qgis.core import QgsProcessingFeedback
-
-    from .polygon import Polygon
 
 
 @dataclasses.dataclass
@@ -62,7 +60,7 @@ class PolygonsParallelToLine:
             self.feedback.setProgress(int(i * total))
 
     def process_polygon(self, polygon: QgsFeature) -> QgsFeature:
-        poly = polygon_factory(polygon)
+        poly = Polygon(polygon)
         line_layer = LineLayer(self.params.line_layer)
         closest_line = line_layer.get_closest_line_geom(poly.center)
         distance = closest_line.calc_distance(poly.geom)

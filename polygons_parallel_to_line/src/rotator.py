@@ -15,7 +15,7 @@ class PolygonRotator:
         self.angle_threshold = angle_threshold
         self.by_longest = by_longest
 
-        closest_poly_part = poly.get_closest_part(closest_line.geom)
+        closest_poly_part = poly.get_closest_single_poly(closest_line.geom)
         self.edge_1, self.edge_2 = closest_poly_part.closest_edges_pair
         # Azimuths from the closest vertex pointing to adjacent vertices (next and previous)
         edge_1_azimuth, edge_2_azimuth = self.edge_1.get_line_azimuth(), self.edge_2.get_line_azimuth()
