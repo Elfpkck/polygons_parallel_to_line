@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import abc
+from abc import ABC, abstractmethod
 from functools import cached_property
-from typing import Literal, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from qgis.core import QgsGeometry, QgsPoint
 
@@ -51,11 +51,10 @@ class ClosestSinglePolygon:
 class Polygon:
     def __init__(self, polygon: QgsFeature):
         self.poly = polygon
-        # TODO: geom to PolygonStrategy?
         self.geom = polygon.geometry()
-        self.geom_type: PolygonStrategy = MultiPolygon() if self.geom.isMultipart() else SinglePolygon()
-        self.is_multi = self.geom_type.is_multi
-        self.single_polygons_vertexes = self.geom_type.as_single_polygons_vertexes(self.geom)
+        self.is_multi = self.geom.isMultipart()
+        self._strategy: PolygonStrategy = MultiPolygon() if self.is_multi else SinglePolygon()
+        self.single_polygons_vertexes = self._strategy.as_single_polygons_vertexes(self.geom)
         self.center = self.geom.centroid().asPoint()
         self.is_rotated = False
 
@@ -77,30 +76,17 @@ class Polygon:
         return closest_single_poly
 
 
-class PolygonStrategy(abc.ABC):
-    @property
-    @abc.abstractmethod
-    def is_multi(self) -> bool:
-        ...
-
-    @abc.abstractmethod
+class PolygonStrategy(ABC):
+    @abstractmethod
     def as_single_polygons_vertexes(self, geom: QgsGeometry) -> list[list[QgsPointXY]]:
         """Without the last vertex, which is the same as the first one."""
 
 
 class SinglePolygon(PolygonStrategy):
-    @property
-    def is_multi(self) -> Literal[False]:
-        return False
-
     def as_single_polygons_vertexes(self, geom: QgsGeometry) -> list[list[QgsPointXY]]:
         return [geom.asPolygon()[0][:-1]]
 
 
 class MultiPolygon(PolygonStrategy):
-    @property
-    def is_multi(self) -> Literal[True]:
-        return True
-
     def as_single_polygons_vertexes(self, geom: QgsGeometry) -> list[list[QgsPointXY]]:
         return [part[0][:-1] for part in geom.asMultiPolygon()]
