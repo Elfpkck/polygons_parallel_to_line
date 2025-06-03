@@ -62,7 +62,7 @@ class PolygonsParallelToLine:
     def process_polygon(self, polygon: QgsFeature) -> QgsFeature:
         poly = Polygon(polygon)
         line_layer = LineLayer(self.params.line_layer)
-        closest_line = line_layer.get_closest_line_geom(poly.center)
+        closest_line = line_layer.get_closest_line(poly.center)
         distance = closest_line.calc_distance(poly.geom)
 
         if (self.params.distance and distance > self.params.distance) or (self.params.no_multi and poly.is_multi):

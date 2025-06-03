@@ -4,9 +4,9 @@ from abc import ABC, abstractmethod
 from functools import cached_property
 from typing import TYPE_CHECKING
 
-from qgis.core import QgsGeometry, QgsPoint
+from qgis.core import QgsGeometry
 
-from .line import SingleLine
+from .line import Edge
 
 if TYPE_CHECKING:
     from qgis.core import QgsFeature, QgsPointXY
@@ -36,16 +36,16 @@ class ClosestSinglePolygon:
         return min_distance, closest_vertex_index
 
     @cached_property
-    def closest_edges_pair(self) -> tuple[SingleLine, SingleLine]:
+    def closest_edges_pair(self) -> tuple[Edge, Edge]:
         if self.closest_vertex_index == len(self.vertexes) - 1:  # if vertex is last
             edge_1_end_idx, edge_2_end_idx = 0, -2
         else:
             edge_1_end_idx, edge_2_end_idx = self.closest_vertex_index + 1, self.closest_vertex_index - 1
 
-        start = QgsPoint(self.closest_vertex)
-        edge_1 = QgsGeometry.fromPolyline([start, QgsPoint(self.vertexes[edge_1_end_idx])])
-        edge_2 = QgsGeometry.fromPolyline([start, QgsPoint(self.vertexes[edge_2_end_idx])])
-        return SingleLine(edge_1), SingleLine(edge_2)
+        return (
+            Edge(self.closest_vertex, self.vertexes[edge_1_end_idx]),
+            Edge(self.closest_vertex, self.vertexes[edge_2_end_idx]),
+        )
 
 
 class Polygon:
