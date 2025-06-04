@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from qgis.core import QgsPointXY
+
 from .azimuth import calc_delta_azimuth
 
 if TYPE_CHECKING:
@@ -15,9 +17,9 @@ class PolygonRotator:
         self.angle_threshold = angle_threshold
         self.by_longest = by_longest
 
-        closest_poly_part = poly.get_closest_single_poly(closest_line.geom)
+        closest_poly_part = poly.get_closest_single_poly(closest_line)
         self.edge_1, self.edge_2 = closest_poly_part.closest_edges_pair
-        line_segment_azimuth = closest_line.get_closest_segment_azimuth(closest_poly_part.closest_vertex)
+        line_segment_azimuth = closest_line.get_closest_segment_azimuth(QgsPointXY(closest_poly_part.closest_vertex))
         self.delta1 = calc_delta_azimuth(line_segment_azimuth, self.edge_1.azimuth)
         self.delta2 = calc_delta_azimuth(line_segment_azimuth, self.edge_2.azimuth)
 

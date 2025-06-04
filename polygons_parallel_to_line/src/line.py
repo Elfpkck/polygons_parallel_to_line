@@ -26,7 +26,7 @@ class Line:
         return self.geom.distance(geom)
 
 
-# TODO: as 2 functions?
+# TODO: unite and remove these 2 classes? or  as 2 functions?
 class LineStrategy(ABC):
     @abstractmethod
     def get_closest_segment(self, point_xy: QgsPointXY, geom: QgsGeometry) -> tuple[QgsPointXY, QgsPointXY]:
@@ -44,11 +44,11 @@ class MultiLine(LineStrategy):
         closest_line_geom, next_vertex_idx = None, None
         min_distance = float("inf")
 
-        for line_geom in geom.asGeometryCollection():
-            distance, _, temp_next_vertex_idx, _ = line_geom.closestSegmentWithContext(point_xy)
+        for single_line_geom in geom.asGeometryCollection():
+            distance, _, temp_next_vertex_idx, _ = single_line_geom.closestSegmentWithContext(point_xy)
 
             if distance < min_distance:
-                closest_line_geom = line_geom
+                closest_line_geom = single_line_geom
                 next_vertex_idx = temp_next_vertex_idx
                 min_distance = distance
 

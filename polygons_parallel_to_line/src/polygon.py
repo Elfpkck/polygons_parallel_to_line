@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from functools import cached_property
 from typing import TYPE_CHECKING
 
@@ -9,22 +8,25 @@ from qgis.core import QgsGeometry
 from .line import Edge
 
 if TYPE_CHECKING:
-    from qgis.core import QgsFeature, QgsPointXY
+    from qgis.core import QgsFeature
+
+    from .line import Line
 
 
 class ClosestSinglePolygon:
-    def __init__(self, vertexes: list[QgsPointXY], closest_line_geom: QgsGeometry):
-        self.vertexes = vertexes
-        self.closest_line_geom = closest_line_geom
+    def __init__(self, single_poly_geom: QgsGeometry, closest_line: Line):
+        self.single_poly_geom = single_poly_geom
+        self.closest_line = closest_line
         self.min_distance, self.closest_vertex_index = self._calc_closest_vertex_info()
-        self.closest_vertex = vertexes[self.closest_vertex_index]
+        self.closest_vertex = single_poly_geom.vertexAt(self.closest_vertex_index)
 
     def _calc_closest_vertex_info(self) -> tuple[float, int]:
         min_distance = float("inf")
         closest_vertex_index = None
 
-        for i, vertex in enumerate(self.vertexes):
-            distance_to_line = QgsGeometry.fromPointXY(vertex).distance(self.closest_line_geom)
+        # TODO: deal with first and the last vertex are the same but different indexes
+        for i, vertex_poly in enumerate(self.single_poly_geom.vertices()):
+            distance_to_line = QgsGeometry.fromPoint(vertex_poly).distance(self.closest_line.geom)
 
             if distance_to_line < min_distance:
                 min_distance = distance_to_line
@@ -35,18 +37,12 @@ class ClosestSinglePolygon:
 
         return min_distance, closest_vertex_index
 
-    # TODO: https://qgis.org/pyqgis/3.40/core/QgsGeometry.html#qgis.core.QgsGeometry.adjacentVertices
-    # TODO: don't delete the last vertex then
     @cached_property
     def closest_edges_pair(self) -> tuple[Edge, Edge]:
-        if self.closest_vertex_index == len(self.vertexes) - 1:  # if vertex is last
-            edge_1_end_idx, edge_2_end_idx = 0, -2
-        else:
-            edge_1_end_idx, edge_2_end_idx = self.closest_vertex_index + 1, self.closest_vertex_index - 1
-
+        end_1, end_2 = self.single_poly_geom.adjacentVertices(self.closest_vertex_index)
         return (
-            Edge(self.closest_vertex, self.vertexes[edge_1_end_idx]),
-            Edge(self.closest_vertex, self.vertexes[edge_2_end_idx]),
+            Edge(self.closest_vertex, self.single_poly_geom.vertexAt(end_1)),
+            Edge(self.closest_vertex, self.single_poly_geom.vertexAt(end_2)),
         )
 
 
@@ -55,18 +51,16 @@ class Polygon:
         self.poly = polygon
         self.geom = polygon.geometry()
         self.is_multi = self.geom.isMultipart()
-        self._strategy: PolygonStrategy = MultiPolygon() if self.is_multi else SinglePolygon()
-        self.single_polygons_vertexes = self._strategy.as_single_polygons_vertexes(self.geom)
         self.center = self.geom.centroid().asPoint()
         self.is_rotated = False
 
-    def get_closest_single_poly(self, closest_line_geom: QgsGeometry) -> ClosestSinglePolygon:
+    def get_closest_single_poly(self, closest_line: Line) -> ClosestSinglePolygon:
         """If the polygon is multipart, return the closest vertex from all parts."""  # TODO: docs
         closest_single_poly = None
         min_distance = float("inf")
 
-        for single_poly_vertexes in self.single_polygons_vertexes:
-            single_poly = ClosestSinglePolygon(single_poly_vertexes, closest_line_geom)
+        for single_poly_geom in self.geom.asGeometryCollection():
+            single_poly = ClosestSinglePolygon(single_poly_geom, closest_line)
 
             if single_poly.min_distance < min_distance:
                 closest_single_poly = single_poly
@@ -76,20 +70,3 @@ class Polygon:
             raise ValueError("No parts found in the polygon")
 
         return closest_single_poly
-
-
-# TODO: as 2 functions?
-class PolygonStrategy(ABC):
-    @abstractmethod
-    def as_single_polygons_vertexes(self, geom: QgsGeometry) -> list[list[QgsPointXY]]:
-        """Without the last vertex, which is the same as the first one."""
-
-
-class SinglePolygon(PolygonStrategy):
-    def as_single_polygons_vertexes(self, geom: QgsGeometry) -> list[list[QgsPointXY]]:
-        return [geom.asPolygon()[0][:-1]]
-
-
-class MultiPolygon(PolygonStrategy):
-    def as_single_polygons_vertexes(self, geom: QgsGeometry) -> list[list[QgsPointXY]]:
-        return [part[0][:-1] for part in geom.asMultiPolygon()]

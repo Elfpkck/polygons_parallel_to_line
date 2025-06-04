@@ -40,7 +40,6 @@ class PolygonsParallelToLine:
         self.total_number = self.params.polygon_layer.featureCount()
 
     def run(self) -> None:
-        # pydevd_pycharm.settrace("127.0.0.1", port=53100, stdoutToServer=True, stderrToServer=True)
         self.validate_polygon_layer()
         self.rotate_polygons()
 
