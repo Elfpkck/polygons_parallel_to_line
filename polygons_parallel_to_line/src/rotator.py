@@ -17,11 +17,9 @@ class PolygonRotator:
 
         closest_poly_part = poly.get_closest_single_poly(closest_line.geom)
         self.edge_1, self.edge_2 = closest_poly_part.closest_edges_pair
-        # Azimuths from the closest vertex pointing to adjacent vertices (next and previous)
-        edge_1_azimuth, edge_2_azimuth = self.edge_1.get_line_azimuth(), self.edge_2.get_line_azimuth()
         line_segment_azimuth = closest_line.get_closest_segment_azimuth(closest_poly_part.closest_vertex)
-        self.delta1 = calc_delta_azimuth(line_segment_azimuth, edge_1_azimuth)
-        self.delta2 = calc_delta_azimuth(line_segment_azimuth, edge_2_azimuth)
+        self.delta1 = calc_delta_azimuth(line_segment_azimuth, self.edge_1.azimuth)
+        self.delta2 = calc_delta_azimuth(line_segment_azimuth, self.edge_2.azimuth)
 
     def rotate(self) -> None:
         if abs(self.delta1) <= self.angle_threshold and abs(self.delta2) <= self.angle_threshold:
@@ -45,10 +43,9 @@ class PolygonRotator:
         """Rotates the polygon based on the longest edge. If edges are equal length, falls back to rotating by
         the smallest angle.
         """
-        length1, length2 = self.edge_1.length, self.edge_2.length
-        if length1 > length2:
+        if self.edge_1.length > self.edge_2.length:
             self.rotate_by_angle(self.delta1)
-        elif length1 < length2:
+        elif self.edge_1.length < self.edge_2.length:
             self.rotate_by_angle(self.delta2)
         else:
             self.rotate_by_smallest_angle()

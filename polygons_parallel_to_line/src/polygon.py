@@ -35,6 +35,8 @@ class ClosestSinglePolygon:
 
         return min_distance, closest_vertex_index
 
+    # TODO: https://qgis.org/pyqgis/3.40/core/QgsGeometry.html#qgis.core.QgsGeometry.adjacentVertices
+    # TODO: don't delete the last vertex then
     @cached_property
     def closest_edges_pair(self) -> tuple[Edge, Edge]:
         if self.closest_vertex_index == len(self.vertexes) - 1:  # if vertex is last
@@ -76,6 +78,7 @@ class Polygon:
         return closest_single_poly
 
 
+# TODO: as 2 functions?
 class PolygonStrategy(ABC):
     @abstractmethod
     def as_single_polygons_vertexes(self, geom: QgsGeometry) -> list[list[QgsPointXY]]:
