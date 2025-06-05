@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from qgis.core import Qgis
+
 from .line import Segment
 
 if TYPE_CHECKING:
@@ -34,3 +36,14 @@ class Polygon:
                     )
 
         raise ValueError(f"Vertex {target_vertex} not found in polygon {self.feature.id()}")
+
+    def rotate(self, angle: float) -> Qgis.GeometryOperationResult:
+        """QgsGeometry.rotate() takes any positive and negative values. Positive - rotate clockwise,
+        negative - counterclockwise.
+        """
+        result = self.geom.rotate(angle, self.center)
+        if result == Qgis.GeometryOperationResult.Success:
+            self.feature.setGeometry(self.geom)
+            self.is_rotated = True
+
+        return result

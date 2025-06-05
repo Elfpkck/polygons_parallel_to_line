@@ -34,12 +34,7 @@ class PolygonRotator:
                 return self.rotate_by_angle(delta_azimuth)
 
     def rotate_by_angle(self, angle: float) -> None:
-        """QgsGeometry.rotate() takes any positive and negative values. Positive - rotate clockwise,
-        negative - counterclockwise.
-        """
-        self.poly.geom.rotate(angle, self.poly.center)
-        self.poly.feature.setGeometry(self.poly.geom)
-        self.poly.is_rotated = True
+        self.poly.rotate(angle)
 
     def rotate_by_longest_segment(self) -> None:
         """Rotates the polygon based on the longest segment. If segments are equal length, falls back to rotating by

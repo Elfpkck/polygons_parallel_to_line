@@ -16,9 +16,9 @@ if TYPE_CHECKING:
 
 
 class Line:
-    def __init__(self, line: QgsFeature):
-        self.line = line
-        self.geom = line.geometry()
+    def __init__(self, line_feature: QgsFeature):
+        self.feature = line_feature
+        self.geom = line_feature.geometry()
 
     def get_closest_segment(self, point_xy: QgsPointXY) -> Segment:
         _, _, next_vertex_idx, _ = self.geom.closestSegmentWithContext(point_xy)
