@@ -70,7 +70,8 @@ class Algorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterBoolean(
                 self.LONGEST,
-                "Rotate by longest edge if both angles between polygon edges and line segment <= 'Angle value'",
+                "Rotate by the longest segment if both angles between polygon segments and line segment <="
+                " 'Angle value'",
                 defaultValue=False,
             )
         )

@@ -82,7 +82,7 @@ class PolygonsParallelToLine:
         """
         new_feature = QgsFeature(self.params.fields)
         new_feature.setGeometry(poly.geom)
-        attrs = poly.poly.attributes()
+        attrs = poly.feature.attributes()
 
         if poly.is_rotated:
             attrs.append(1)  # Add 1 if the polygon was rotated
