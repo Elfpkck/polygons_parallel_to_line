@@ -20,7 +20,7 @@ class Polygon:
         self.center_xy: QgsPointXY = self.geom.centroid().asPoint()
         self.is_rotated: bool = False
 
-    def find_closest_vertex(self, closest_line: Line) -> QgsPoint:
+    def get_closest_vertex(self, closest_line: Line) -> QgsPoint:
         nearest_point_on_line_geom = closest_line.geom.nearestPoint(self.geom)
         _, closest_vertex_idx = self.geom.closestVertexWithContext(nearest_point_on_line_geom.asPoint())
         return self.geom.vertexAt(closest_vertex_idx)
