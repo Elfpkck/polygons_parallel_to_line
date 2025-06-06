@@ -17,8 +17,8 @@ if TYPE_CHECKING:
 
 class Line:
     def __init__(self, line_feature: QgsFeature):
-        self.feature = line_feature
-        self.geom = line_feature.geometry()
+        self.feature: QgsFeature = line_feature
+        self.geom: QgsGeometry = line_feature.geometry()
 
     def get_closest_segment(self, point_xy: QgsPointXY) -> Segment:
         _, _, next_vertex_idx, _ = self.geom.closestSegmentWithContext(point_xy)
@@ -31,9 +31,9 @@ class Line:
 
 class LineLayer:
     def __init__(self, line_layer: QgsProcessingFeatureSource):
-        self.line_layer = line_layer
-        self.id_line_map = {x.id(): x for x in line_layer.getFeatures()}
-        self.spatial_index = QgsSpatialIndex(flags=QgsSpatialIndex.FlagStoreFeatureGeometries)
+        self.line_layer: QgsProcessingFeatureSource = line_layer
+        self.id_line_map: dict[int, QgsFeature] = {x.id(): x for x in line_layer.getFeatures()}
+        self.spatial_index: QgsSpatialIndex = QgsSpatialIndex(flags=QgsSpatialIndex.FlagStoreFeatureGeometries)
         self.spatial_index.addFeatures(line_layer.getFeatures())
 
     def get_closest_line(self, point: QgsPointXY) -> Line:
@@ -45,8 +45,8 @@ class LineLayer:
 
 class Segment:
     def __init__(self, start: QgsPoint, end: QgsPoint):
-        self.start = start
-        self.end = end
+        self.start: QgsPoint = start
+        self.end: QgsPoint = end
 
     @cached_property
     def length(self) -> float:

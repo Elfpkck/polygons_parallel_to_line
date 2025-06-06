@@ -14,14 +14,14 @@ if TYPE_CHECKING:
 # TODO: can I use this? https://qgis.org/pyqgis/3.40/core/QgsGeometry.html#qgis.core.QgsGeometry.angleAtVertex
 class PolygonRotator:
     def __init__(self, poly: Polygon, closest_line: Line, angle_threshold: float, by_longest: bool):
-        self.poly = poly
-        self.angle_threshold = angle_threshold
-        self.by_longest = by_longest
+        self.poly: Polygon = poly
+        self.angle_threshold: float = angle_threshold
+        self.by_longest: bool = by_longest
         poly_closest_vertex = poly.find_closest_vertex(closest_line)
         self.prev_poly_segment, self.next_poly_segment = poly.get_adjacent_segments(poly_closest_vertex)
         line_segment = closest_line.get_closest_segment(QgsPointXY(poly_closest_vertex))
-        self.prev_delta_azimuth = calc_delta_azimuth(line_segment.azimuth, self.prev_poly_segment.azimuth)
-        self.next_delta_azimuth = calc_delta_azimuth(line_segment.azimuth, self.next_poly_segment.azimuth)
+        self.prev_delta_azimuth: float = calc_delta_azimuth(line_segment.azimuth, self.prev_poly_segment.azimuth)
+        self.next_delta_azimuth: float = calc_delta_azimuth(line_segment.azimuth, self.next_poly_segment.azimuth)
 
     def rotate(self) -> None:
         if abs(self.prev_delta_azimuth) <= self.angle_threshold >= abs(self.next_delta_azimuth):

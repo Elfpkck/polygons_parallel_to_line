@@ -35,9 +35,9 @@ class Params:
 
 class PolygonsParallelToLine:
     def __init__(self, feedback: QgsProcessingFeedback, params: Params):
-        self.feedback = feedback
-        self.params = params
-        self.total_number = self.params.polygon_layer.featureCount()
+        self.feedback: QgsProcessingFeedback = feedback
+        self.params: Params = params
+        self.total_number: int = self.params.polygon_layer.featureCount()
 
     def run(self) -> None:
         self.validate_polygon_layer()
@@ -61,7 +61,7 @@ class PolygonsParallelToLine:
     def process_polygon(self, polygon: QgsFeature) -> QgsFeature:
         poly = Polygon(polygon)
         line_layer = LineLayer(self.params.line_layer)
-        closest_line = line_layer.get_closest_line(poly.center)
+        closest_line = line_layer.get_closest_line(poly.center_xy)
         distance = closest_line.calc_distance(poly.geom)
 
         if (self.params.distance and distance > self.params.distance) or (self.params.no_multi and poly.is_multi):

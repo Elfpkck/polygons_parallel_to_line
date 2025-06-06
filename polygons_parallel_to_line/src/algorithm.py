@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from qgis.core import (
     QgsField,
@@ -52,7 +52,7 @@ class Algorithm(QgsProcessingAlgorithm):
     def shortHelpString(self) -> str:  # noqa: N802
         return "This plugin rotates polygons parallel to the lines"
 
-    def initAlgorithm(self, config: Optional[dict] = None) -> None:  # noqa: N802
+    def initAlgorithm(self, config: dict | None = None) -> None:  # noqa: N802
         self.addParameter(
             QgsProcessingParameterFeatureSink(
                 self.OUTPUT_LAYER,
