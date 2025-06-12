@@ -12,19 +12,39 @@ from qgis.core import (
 )
 
 from .line import LineLayer
-from .polygon import polygon_factory
-from .rotator import DeltaAzimuth, PolygonRotator
+from .polygon import Polygon
+from .rotator import PolygonRotator
 
 if TYPE_CHECKING:
     from qgis.core import QgsProcessingFeedback
 
-    from .line import Line
-    from .polygon import Polygon
-
 
 @dataclasses.dataclass
 class Params:
-    """Input parameters for the algorithm."""
+    """
+    Represents the parameters for processing geospatial data.
+
+    This class defines a set of parameters required for processing geospatial data, such as line and polygon layers,
+    adjustable distance, angle parameters, and options to control output formats and behavior. It acts as a container
+    for inputs and configurations necessary for geospatial processing workflows.
+
+    :ivar line_layer: A feature source representing the input line layer.
+    :type line_layer: QgsProcessingFeatureSource
+    :ivar polygon_layer: A feature source representing the input polygon layer.
+    :type polygon_layer: QgsProcessingFeatureSource
+    :ivar by_longest: Determines whether processing should consider the longest feature during calculations.
+    :type by_longest: bool
+    :ivar no_multi: Determines whether to restrict outputs to single-part geometries (no multiparts).
+    :type no_multi: bool
+    :ivar distance: A numeric value representing a distance parameter within the process.
+    :type distance: float
+    :ivar angle: A numeric value representing an angle parameter for calculations.
+    :type angle: float
+    :ivar fields: A collection of feature fields to be processed.
+    :type fields: QgsFields
+    :ivar sink: A feature sink where processed output features are stored.
+    :type sink: QgsFeatureSink
+    """
 
     line_layer: QgsProcessingFeatureSource
     polygon_layer: QgsProcessingFeatureSource
@@ -37,12 +57,40 @@ class Params:
 
 
 class PolygonsParallelToLine:
+    """
+    Handles the processing of polygons to align them parallel to the closest line from a provided line layer.
+
+    This class is designed to process polygons from a given layer, validate their existence, and rotate them to align
+    parallel to the nearest line within a specified line layer. The class operates based on provided parameters which
+    define constraints and criteria for processing, such as distance thresholds, rotation angles, and multi-polygon
+    behavior.
+
+    The processing includes validating the input polygon layer, determining the closest line for each polygon,
+    calculating necessary rotations, applying transformations, and saving the processed features into the sink layer.
+
+    :ivar feedback: The QgsProcessingFeedback object used for sending feedback to the user during processing,
+        such as progress updates.
+    :type feedback: QgsProcessingFeedback
+    :ivar params: The object encapsulating all parameters required for processing the polygons, such as layers to
+        process, fields, and constraints.
+    :type params: Params
+    :ivar total_number: The total number of features (polygons) in the input layer being processed.
+    :type total_number: int
+    """
+
     def __init__(self, feedback: QgsProcessingFeedback, params: Params):
         self.feedback = feedback
         self.params = params
-        self.total_number = self.params.polygon_layer.featureCount()
+        self.total_number: int = self.params.polygon_layer.featureCount()
 
     def run(self) -> None:
+        """
+        Executes the main functionality of the object, involving validation and manipulation of polygon-related data.
+        The function performs a series of predefined operations critical to the object’s intended behavior.
+        Specifically, it validates a polygon layer and applies a rotation operation to the polygons.
+
+        :return: None
+        """
         # pydevd_pycharm.settrace("127.0.0.1", port=53100, stdoutToServer=True, stderrToServer=True)
         self.validate_polygon_layer()
         self.rotate_polygons()
@@ -52,53 +100,72 @@ class PolygonsParallelToLine:
             raise QgsProcessingException("Layer does not have any polygons")
 
     def rotate_polygons(self) -> None:
+        """
+        Rotates and processes polygons from the provided layer and updates the progress feedback. The method iterates
+        through the features in the polygon layer, processes each polygon, and adds the processed features to
+        the designated sink. Progress is updated during each iteration, and the operation stops if it is canceled via
+        feedback.
+
+        :param self: An instance of the class the method belongs to.
+
+        :returns: None
+        """
         total = 100.0 / self.total_number
-        processed_polygons = []
 
         for i, polygon in enumerate(self.params.polygon_layer.getFeatures(), start=1):
             if self.feedback.isCanceled():
                 break
 
-            processed_polygons.append(self.rotate_polygon(polygon))
+            processed_polygon = self.process_polygon(polygon)
+            self.params.sink.addFeature(processed_polygon, QgsFeatureSink.FastInsert)
             self.feedback.setProgress(int(i * total))
 
-        self.params.sink.addFeatures(processed_polygons, QgsFeatureSink.FastInsert)
+    def process_polygon(self, polygon: QgsFeature) -> QgsFeature:
+        """
+        Processes a polygon by calculating its proximity to the closest line, applying various transformations and
+        conditions, and creating a new feature based on the modifications or conditions provided.
 
-    def rotate_polygon(self, polygon: QgsFeature) -> QgsFeature:
-        poly = polygon_factory(polygon)
+        :param polygon: The QgsFeature object representing the input polygon to be processed.
+        :type polygon: QgsFeature
+        :return: A QgsFeature object representing the newly processed or modified polygon.
+        :rtype: QgsFeature
+        """
+        poly = Polygon(polygon)
         line_layer = LineLayer(self.params.line_layer)
-        line = line_layer.get_closest_line_geom(poly.center)
-        distance = line.get_distance(poly.geom)
+        closest_line = line_layer.get_closest_line(poly.center_xy)
+        distance = closest_line.calc_distance(poly.geom)
 
         if (self.params.distance and distance > self.params.distance) or (self.params.no_multi and poly.is_multi):
-            return self.get_new_feature(poly, rotation_check=False)
+            return self.create_new_feature(poly)
 
-        closest_part = poly.get_closest_part(line.geom)
-        edge_1, edge_2 = closest_part.get_closest_edges()
-        # this 2 azimuths FROM the closest vertex TO the next and TO the previous vertexes
-        edge_1_azimuth, edge_2_azimuth = edge_1.get_line_azimuth(), edge_2.get_line_azimuth()
-        line_segment_azimuth = line.get_closest_segment_azimuth(closest_part.closest_vertex)
-        delta1 = DeltaAzimuth(line_segment_azimuth, edge_1_azimuth).delta_azimuth
-        delta2 = DeltaAzimuth(line_segment_azimuth, edge_2_azimuth).delta_azimuth
-        rotator = PolygonRotator(poly, delta1, delta2)
-        self.rotate(rotator, edge_1, edge_2)
-        return self.get_new_feature(rotator.poly, rotator.rotation_check)
+        PolygonRotator(
+            poly=poly,
+            closest_line=closest_line,
+            angle_threshold=self.params.angle,
+            by_longest=self.params.by_longest,
+        ).rotate()
+        return self.create_new_feature(poly)
 
-    def rotate(self, rotator: PolygonRotator, edge_1: Line, edge_2: Line) -> None:
-        if abs(rotator.delta1) <= self.params.angle >= abs(rotator.delta2):
-            if self.params.by_longest:
-                return rotator.rotate_by_longest_edge(edge_1.length, edge_2.length)
-            return rotator.rotate_by_lower_angle()
+    def create_new_feature(self, poly: Polygon) -> QgsFeature:
+        """
+        Creates a new feature based on the given polygon.
 
-        for delta in (rotator.delta1, rotator.delta2):
-            if abs(delta) <= self.params.angle:
-                return rotator.rotate_by_angle(delta)
+        This method initializes a new feature using predefined fields, sets its geometry based on the input polygon,
+        and transfers attributes from the polygon to the new feature. If the polygon was rotated, an additional
+        attribute with a value of 1 is appended to the attributes.
 
-    def get_new_feature(self, poly: Polygon, rotation_check: bool) -> QgsFeature:
+        :param poly: The input polygon containing geometry and attributes for creating the new feature.
+        :type poly: Polygon
+        :return: A new feature with geometry derived from the polygon and attributes, including a flag for rotation if
+            applicable.
+        :rtype: QgsFeature
+        """
         new_feature = QgsFeature(self.params.fields)
         new_feature.setGeometry(poly.geom)
-        attrs = poly.poly.attributes()
-        if rotation_check:
-            attrs.append(1)
+        attrs = poly.feature.attributes()
+
+        if poly.is_rotated:
+            attrs.append(1)  # Add 1 if the polygon was rotated
+
         new_feature.setAttributes(attrs)
         return new_feature
