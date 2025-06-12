@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from polygons_parallel_to_line.__init__ import classFactory
-from polygons_parallel_to_line.src.plugin import Plugin
+from PolygonsParallelToLine.__init__ import classFactory
+from PolygonsParallelToLine.src.plugin import Plugin
 
 
 @pytest.fixture(scope="function")

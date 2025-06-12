@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from polygons_parallel_to_line.src.algorithm import Algorithm
+from PolygonsParallelToLine.src.algorithm import Algorithm
 
 
 @pytest.fixture(scope="module")
