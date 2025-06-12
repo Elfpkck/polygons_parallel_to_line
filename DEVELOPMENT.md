@@ -28,7 +28,7 @@ These instructions are specific to PyCharm.
 
 ### Docker Remote Debugging
 
-1. Perform the additional setup for Python Debug Server:
+1. Perform the additional setup for the Python Debug Server:
     - Path mappings: `/Users/elf/dev/private/polygons_parallel_to_line=/pptl`
 2. Uncomment the following line in `test_main_functionality.py`:
     ```python
@@ -42,7 +42,7 @@ These instructions are specific to PyCharm.
     ```shell
     /Applications/QGIS.app/Contents/MacOS/bin/python3 -m pip install pydevd-pycharm pydevd
     ```
-2. Uncomment the following line in `pptl`:
+2. Uncomment the following line in `pptl.py`:
     ```python
     # pydevd_pycharm.settrace("127.0.0.1", port=53100, stdoutToServer=True, stderrToServer=True)
     ```
@@ -52,3 +52,12 @@ These instructions are specific to PyCharm.
     - Variable: `QGIS_PLUGINPATH`
     - Value: `/path/to/plugin` (e.g., `/Users/elf/dev/private/polygons_parallel_to_line`)
 5. To reload the plugin, use the "Plugin Reloader" plugin.
+
+## Add a New Plugin Version to QGIS
+
+1. Run:
+   ```shell
+   zip -r pptl.zip PolygonsParallelToLine/ -x "*.DS_Store" "__MACOSX"
+   ```
+2. Open https://plugins.qgis.org/plugins/PolygonsParallelToLine/version/add/
+3. Upload `pptl.zip`

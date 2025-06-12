@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from polygons_parallel_to_line.src.azimuth import (
+from PolygonsParallelToLine.src.azimuth import (
     normalize_azimuth_to_90_range,
     normalize_azimuth_to_positive_range,
 )
