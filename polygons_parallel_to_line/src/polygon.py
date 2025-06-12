@@ -1,84 +1,106 @@
 from __future__ import annotations
 
-import abc
 from typing import TYPE_CHECKING
 
-from qgis.core import QgsGeometry, QgsPoint
+from qgis.core import Qgis, QgsProcessingException
 
-from .line import line_factory
+from .line import Segment
 
 if TYPE_CHECKING:
-    from qgis.core import QgsFeature, QgsPointXY
+    from qgis.core import QgsFeature, QgsGeometry, QgsPoint, QgsPointXY
 
     from .line import Line
 
 
-class ClosestPolygonPart:
-    def __init__(self, vertexes: list[QgsPointXY], closest_line_geom: QgsGeometry):
-        self.vertexes = vertexes
-        self.closest_line_geom = closest_line_geom
-        self.distance, self.closest_vertex_index, self.closest_vertex = self._get_closest_vertex()
+class Polygon:
+    """
+    Represents a polygon geometry and provides methods to perform various geometric operations such as
+    retrieving vertices, adjacent segments, and applying rotations.
 
-    def _get_closest_vertex(self) -> tuple[float, int, QgsPointXY]:
-        vertexes: dict[float, tuple[int, QgsPointXY]] = {}
-        for i, vertex in enumerate(self.vertexes):
-            vertex_geom = QgsGeometry.fromPointXY(vertex)
-            distance_to_line = vertex_geom.distance(self.closest_line_geom)
-            vertexes[distance_to_line] = (i, vertex)
+    This class encapsulates a polygon feature from a geographic dataset using the `QgsFeature` and `QgsGeometry`
+    structures provided by QGIS. It exposes information about the polygon, such as its geometric representation,
+    whether it is multipart, its centroid, and its rotation status.
 
-        min_distance = min(vertexes)
-        closest_vertex_index, closest_vertex = vertexes[min_distance]
-        return min_distance, closest_vertex_index, closest_vertex
+    :ivar feature: The underlying QGIS feature representing the polygon.
+    :type feature: QgsFeature
+    :ivar geom: The geometry of the polygon derived from the feature.
+    :type geom: QgsGeometry
+    :ivar is_multi: Boolean indicating whether the polygon is multipart.
+    :type is_multi: bool
+    :ivar center_xy: The centroid of the polygon in x-y coordinates.
+    :type center_xy: QgsPointXY
+    :ivar is_rotated: Boolean indicating if the polygon has been rotated.
+    :type is_rotated: bool
+    """
 
-    def get_closest_edges(self) -> tuple[Line, Line]:
-        start = QgsPoint(self.closest_vertex)
+    def __init__(self, polygon_feature: QgsFeature):
+        self.feature = polygon_feature
+        self.geom: QgsGeometry = polygon_feature.geometry()
+        self.is_multi: bool = self.geom.isMultipart()
+        self.center_xy: QgsPointXY = self.geom.centroid().asPoint()
+        self.is_rotated: bool = False
 
-        if self.closest_vertex_index == 0:  # if vertex is first
-            edge1 = QgsGeometry.fromPolyline([start, QgsPoint(self.vertexes[1])])
-            edge2 = QgsGeometry.fromPolyline([start, QgsPoint(self.vertexes[-1])])
-        elif self.closest_vertex_index == len(self.vertexes) - 1:  # if vertex is last
-            edge1 = QgsGeometry.fromPolyline([start, QgsPoint(self.vertexes[0])])
-            edge2 = QgsGeometry.fromPolyline([start, QgsPoint(self.vertexes[-2])])
-        else:
-            edge1 = QgsGeometry.fromPolyline([start, QgsPoint(self.vertexes[self.closest_vertex_index + 1])])
-            edge2 = QgsGeometry.fromPolyline([start, QgsPoint(self.vertexes[self.closest_vertex_index - 1])])
-        return line_factory(edge1), line_factory(edge2)
+    def get_closest_vertex(self, closest_line: Line) -> QgsPoint:
+        """
+        Computes the closest vertex on the geometry associated with the calling object to a specified line geometry.
+        The computation identifies the point on the line geometry nearest to the geometry of the calling object, and
+        subsequently retrieves the closest vertex on the calling object's geometry to that point.
 
+        :param closest_line: The line geometry which shall be used to determine the closest vertex on the geometry of
+            the calling object.
+        :return: A QgsPoint object representing the closest vertex on the geometry of the calling object to
+            the nearest point on the specified line geometry.
+        """
+        nearest_point_on_line_geom = closest_line.geom.nearestPoint(self.geom)
+        _, closest_vertex_idx = self.geom.closestVertexWithContext(nearest_point_on_line_geom.asPoint())
+        return self.geom.vertexAt(closest_vertex_idx)
 
-class Polygon(abc.ABC):
-    def __init__(self, polygon: QgsFeature, *, is_multi: bool):
-        self.poly = polygon
-        self.is_multi = is_multi
-        self.geom = polygon.geometry()
-        self.center = self.geom.centroid().asPoint()
-        self.vertexes = self.get_vertexes()
+    def get_adjacent_segments(self, target_vertex: QgsPoint) -> tuple[Segment, Segment]:
+        """
+        Retrieve the segments adjacent to a specified target vertex within a geometry.
 
-    @abc.abstractmethod
-    def get_vertexes(self) -> list[list[QgsPointXY]]:
-        """Without the last vertex which is the same as the first one."""
+        This method iterates through the geometries in a collection and identifies the vertex that matches the given
+        target. Upon locating the target vertex, it calculates the adjacent vertices and returns two segments, each
+        defined by the target vertex and one of the adjacent vertices. If the target vertex is not found within
+        the geometry, an error is raised.
 
-    def get_closest_part(self, closest_line_geom: QgsGeometry) -> ClosestPolygonPart:
-        """If polygon is multipart, return the closest vertex from all parts."""
-        polygon_parts = {}
-        for part in self.vertexes:
-            polygon_part = ClosestPolygonPart(part, closest_line_geom)
-            polygon_parts[polygon_part.distance] = polygon_part
+        :param target_vertex: The vertex within the geometry for which adjacent segments are to be determined.
+        :type target_vertex: QgsPoint
+        :return: A tuple containing two segments:
+            - The segment between the target vertex and the previous vertex.
+            - The segment between the target vertex and the next vertex.
+        :rtype: tuple[Segment, Segment]
+        :raises QgsProcessingException: If the specified target vertex is not found within the geometry of the feature.
+        """
+        for part_geom in self.geom.asGeometryCollection():
+            for i, current_vertex in enumerate(part_geom.vertices()):
+                if current_vertex == target_vertex:
+                    prev_vertex_idx, next_vertex_idx = part_geom.adjacentVertices(i)
+                    return (
+                        Segment(start=target_vertex, end=part_geom.vertexAt(prev_vertex_idx)),
+                        Segment(start=target_vertex, end=part_geom.vertexAt(next_vertex_idx)),
+                    )
 
-        return polygon_parts[min(polygon_parts)]
+        raise QgsProcessingException(f"Vertex {target_vertex} not found in polygon {self.feature.id()}")
 
+    def rotate(self, angle: float) -> Qgis.GeometryOperationResult:
+        """
+        Rotates the geometry of the feature around a specified center point.
 
-class SimplePolygone(Polygon):
-    def get_vertexes(self) -> list[list[QgsPointXY]]:
-        return [self.geom.asPolygon()[0][:-1]]
+        The method performs a rotation operation on the geometry of the associated feature by the specified angle. If
+        the rotation is successfully completed, the geometry of the feature is updated, and the rotation status is set.
 
+        QgsGeometry.rotate() takes any positive and negative values. Positive - rotate clockwise,
+        negative - counterclockwise.
 
-class MultiPolygon(Polygon):
-    def get_vertexes(self) -> list[list[QgsPointXY]]:
-        return [part[0][:-1] for part in self.geom.asMultiPolygon()]
+        :param angle: The angle, in degrees, by which the geometry will be rotated.
+        :type angle: float
+        :return: The result of the geometry rotation operation, indicating success or failure.
+        :rtype: Qgis.GeometryOperationResult
+        """
+        result = self.geom.rotate(angle, self.center_xy)
+        if result == Qgis.GeometryOperationResult.Success:
+            self.feature.setGeometry(self.geom)
+            self.is_rotated = True
 
-
-def polygon_factory(polygon: QgsFeature) -> Polygon:
-    if polygon.geometry().isMultipart():
-        return MultiPolygon(polygon, is_multi=True)
-    else:
-        return SimplePolygone(polygon, is_multi=False)
+        return result

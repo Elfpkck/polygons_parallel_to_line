@@ -1,13 +1,21 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import pytest
 from qgis import processing
 from qgis.core import (
     QgsFeature,
     QgsGeometry,
+    QgsProcessingContext,
     QgsProcessingOutputLayerDefinition,
     QgsVectorLayer,
 )
 
 from polygons_parallel_to_line.src.algorithm import Algorithm
+
+if TYPE_CHECKING:
+    from qgis.core import QgsPointXY, QgsVectorDataProvider
 
 LINES = (
     "LineString (3569791.65918140485882759 6347785.93876876402646303, 3569817.29298910731449723 6347770.60050677787512541, 3569817.92332864087074995 6347761.98586648423224688)",
@@ -132,15 +140,15 @@ POLYGONS = (
     ],
     ids=["standard", "by_longest", "distance_angle", "no_multi"],
 )
-def test_pptl(
+def test_main_functionality(
     lines, polys, expected, _rotated, distance, angle, longest, no_multi, qgis_processing, add_features, converter
 ):
     # pydevd_pycharm.settrace("host.docker.internal", port=53100, stdoutToServer=True, stderrToServer=True)
     line_layer = QgsVectorLayer("linestring", "temp_line", "memory")
-    add_features(line_layer, lines)
+    add_features(vector_layer=line_layer, wkt_geometries=lines)
 
     poly_layer = QgsVectorLayer("polygon", "temp_poly", "memory")
-    add_features(poly_layer, polys)
+    add_features(vector_layer=poly_layer, wkt_geometries=polys)
 
     params = {
         "LINE_LAYER": line_layer,
@@ -151,32 +159,84 @@ def test_pptl(
         "ANGLE": angle,
         "OUTPUT": QgsProcessingOutputLayerDefinition("TEMPORARY_OUTPUT"),
     }
-    result = processing.run(Algorithm(), params)
+    context = QgsProcessingContext()
+    result = processing.run(algOrName=Algorithm(), parameters=params, context=context)
+    dest_id = list(result.values())[0]
+    output_layer = context.getMapLayer(dest_id)
+    output_as_wkt = [x.geometry().asWkt() for x in output_layer.getFeatures()]
 
-    for res, exp in zip(result["result_wkt"], expected):
-        assert QgsGeometry.compare(converter(res), converter(exp), 0.0000001)
+    for current_wkt, expected_wkt in zip(output_as_wkt, expected):
+        assert QgsGeometry.compare(obj1=converter(current_wkt), obj2=converter(expected_wkt), epsilon=0.0000001)
 
-    assert result["_rotated"] == _rotated
+    current_values_of_feature__rotated = [1 if x[Algorithm.COLUMN_NAME] == 1 else 0 for x in output_layer.getFeatures()]
+    assert current_values_of_feature__rotated == _rotated
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def add_features():
-    def wrapped(vlayer, wkts):
-        pr = vlayer.dataProvider()
-        for wkt in wkts:
+    """
+    Pytest fixture that returns a function to add geometric features to a vector layer.
+
+    This session-scoped fixture provides a reusable function for adding multiple
+    geometric features to a QgsVectorLayer from WKT (Well-Known Text) geometry strings.
+    Useful for setting up test data in QGIS-based tests.
+
+    Returns:
+        callable: A function that accepts a vector layer and WKT geometries tuple.
+
+    The returned function signature:
+        add_wkt_features_to_layer(vector_layer: QgsVectorLayer, wkt_geometries: tuple[str, ...]) -> None
+
+    Args (for the returned function):
+        vector_layer (QgsVectorLayer): The target vector layer to add features to.
+        wkt_geometries (tuple[str, ...]): Tuple of WKT geometry strings to be
+            converted to QgsGeometry objects and added as features.
+
+    Example:
+        ```python
+        def test_layer_features(add_features):
+            layer = QgsVectorLayer("Point", "test_layer", "memory")
+            geometries = ("POINT(0 0)", "POINT(1 1)", "POINT(2 2)")
+            add_features(layer, geometries)
+            assert layer.featureCount() == 3
+        ```
+    """
+
+    def add_wkt_features_to_layer(vector_layer: QgsVectorLayer, wkt_geometries: tuple[str, ...]) -> None:
+        data_provider: QgsVectorDataProvider = vector_layer.dataProvider()
+        for wkt_geometry in wkt_geometries:
             feature = QgsFeature()
-            feature.setGeometry(QgsGeometry.fromWkt(wkt))
-            pr.addFeature(feature)
+            feature.setGeometry(QgsGeometry.fromWkt(wkt_geometry))
+            data_provider.addFeature(feature)
 
-    return wrapped
+    return add_wkt_features_to_layer
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def converter():
-    def wrapped(wkt):
-        geom = QgsGeometry.fromWkt(wkt)
+    """
+    Pytest fixture that provides a WKT to polygon geometry converter function.
+
+    This session-scoped fixture returns a function that converts Well-Known Text (WKT)
+    strings into QGIS polygon geometry coordinate structures. The converter handles
+    both single polygons and multipolygons.
+
+    Returns:
+        A function that takes a WKT string and returns polygon coordinates as:
+        - For single polygon: list[list[QgsPointXY]] - rings of coordinates
+        - For multipolygon: list[list[list[QgsPointXY]]] - polygons containing rings
+
+    Example:
+        def test_polygon_conversion(converter):
+            result = converter("POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))")
+            assert len(result) == 1  # One ring
+            assert len(result[0]) == 5  # Five points in the ring
+    """
+
+    def wkt_to_polygon_geometry(wkt: str) -> list[list[QgsPointXY]] | list[list[list[QgsPointXY]]]:
+        geom: QgsGeometry = QgsGeometry.fromWkt(wkt)
         if geom.isMultipart():
             return geom.asMultiPolygon()
         return geom.asPolygon()
 
-    return wrapped
+    return wkt_to_polygon_geometry
