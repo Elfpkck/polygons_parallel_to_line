@@ -1,4 +1,6 @@
 # flake8: noqa
+from __future__ import annotations
+
 import sys
 from pathlib import Path
 
@@ -14,7 +16,7 @@ if cmd_folder not in sys.path:
 
 class Plugin:
     def __init__(self) -> None:
-        self.provider = None
+        self.provider: Provider | None = None
 
     def initProcessing(self) -> None:
         self.provider = Provider()
