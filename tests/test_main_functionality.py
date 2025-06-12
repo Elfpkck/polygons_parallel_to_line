@@ -12,7 +12,7 @@ from qgis.core import (
     QgsVectorLayer,
 )
 
-from polygons_parallel_to_line.src.algorithm import Algorithm
+from PolygonsParallelToLine.src.algorithm import Algorithm
 
 if TYPE_CHECKING:
     from qgis.core import QgsPointXY, QgsVectorDataProvider

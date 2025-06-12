@@ -3,8 +3,8 @@ from __future__ import annotations
 import pytest
 from qgis.core import QgsApplication
 
-from polygons_parallel_to_line.src.plugin import Plugin
-from polygons_parallel_to_line.src.provider import Provider
+from PolygonsParallelToLine.src.plugin import Plugin
+from PolygonsParallelToLine.src.provider import Provider
 
 
 @pytest.fixture(scope="function")
