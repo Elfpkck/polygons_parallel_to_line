@@ -43,7 +43,7 @@ python = "^3.9"
 
 [tool.poetry.group.ci.dependencies]
 pre-commit = "4.2.0"
-pytest-cov = "6.1.1"
+pytest-cov = "6.2.1"
 pytest-qgis = "2.1.0"
 
 [tool.poetry.group.local.dependencies]
