@@ -13,23 +13,10 @@ tracker=https://github.com/Elfpkck/polygons_parallel_to_line/issues
 repository=https://github.com/Elfpkck/polygons_parallel_to_line
 
 changelog=
-    1.1
-        - refactoring, docstrings, more tests, dev instruction
-    1.0
-        - QGIS3 support
-        - fixed bugs
-        - added tests
-    0.3
-        - migrated to Processing algorithms; full refactoring
-        - much faster
-        - possibility to write to the new layer all or only selected polygons
-        - possibility to rotate or not rotate multipolygons
-        - each polyline of the multipolyline is processed as a separate
-        - the new "_rotated" field is not duplicated if it already exists
-    0.2.1
-        - translation into Russian and Ukrainian
-    0.2
-        - speed up; progress bar; possibility to rotate selected; to polygonal layer add field "rotated" with value 1 for rotated polygons; new icon
+    - Enhance UI text readability
+    - Skip rotation when an angle is close to zero to avoid unnecessary operations and wrong "_rotated" values
+    - Handle polygon vertex duplicates and internal rings properly
+    - Update test cases to cover new edge cases
 
 tags=polygon, line, vector, parallel, rotating
 
