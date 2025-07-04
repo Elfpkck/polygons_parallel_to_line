@@ -1,112 +1,187 @@
-[![PR Validation](https://github.com/Elfpkck/polygons_parallel_to_line/actions/workflows/test.yaml/badge.svg?event=pull_request
-)](https://github.com/Elfpkck/polygons_parallel_to_line/actions/workflows/test.yaml)
+[![PR Validation](https://github.com/Elfpkck/polygons_parallel_to_line/actions/workflows/test.yaml/badge.svg?event=pull_request)](https://github.com/Elfpkck/polygons_parallel_to_line/actions/workflows/test.yaml)
 [![codecov](https://codecov.io/gh/Elfpkck/polygons_parallel_to_line/graph/badge.svg?token=QEHFI3XE08)](https://codecov.io/gh/Elfpkck/polygons_parallel_to_line)
-# Polygons Parallel to Line
-## General description and demonstration
-Depending on the settings, the plugin rotates the polygons in such a way that
-they become parallel to the nearest lines.
 
-In the new layer, a "`_rotated`" field is created with a value `1` for each
-polygon that has been rotated. If in the source layer such field already
-exists, and its type is `integer`, then the data of this field remains, but
-updated in the new layer.
+[![QGIS](https://qgis.github.io/qgis-uni-navigation/logo.svg)](https://qgis.org)
 
-* before using the plugin:
+# Polygons Parallel to Line — QGIS Python Plugin
 
-![][before]
+A QGIS processing plugin that automatically rotates polygons to align them parallel with their nearest lines based on configurable parameters.
 
-* after using the plugin:
+[Polygons Parallel to Line Plugin on QGIS Plugins Web Portal](https://plugins.qgis.org/plugins/PolygonsParallelToLine/)
 
-![][after]
+![Plugin Demo][intro]
 
-## Work preparation
-The provider needs to be activated in the `Processing` options which are
-accessible from QGIS main menu (`Processing -> Options -> Providers`). Check
-`Activate` like shown below.
+## Table of Contents
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Features](#features)
+- [Algorithm](#algorithm)
+- [Configuration](#configuration)
+- [Usage Examples](#usage-examples)
+- [Requirements](#requirements)
+- [Best Practices](#best-practices)
+- [Development](#development)
+- [License](#license)
+- [Support](#support)
 
-![][processing_options]
+## Installation
+
+### Method 1: QGIS Plugin Manager (Recommended)
+1. Open QGIS
+2. Go to **Plugins** → **Manage and Install Plugins**
+3. Search for "Polygons Parallel to Line"
+4. Click **Install Plugin**
+
+![Installation Guide][install]
+
+### Method 2: Manual Installation
+1. Download the plugin from the [QGIS Plugins Repository](https://plugins.qgis.org/plugins/PolygonsParallelToLine/)
+2. Extract to your QGIS plugins directory
+3. Restart QGIS and enable the plugin
+
+## Quick Start
+
+1. **Access the Plugin**: Go to **Processing** → **Toolbox** → **Polygons Parallel to Line**
+2. **Select Input Layers**: Choose your polygon and line layers
+3. **Configure Parameters**: Set distance and angle thresholds as needed
+4. **Run**: Execute the algorithm to generate aligned polygons
+
+![How to Access][open]
+
+## Features
+
+✅ **Automatic Polygon Rotation**: Intelligently rotates polygons to align with nearest lines  
+✅ **Distance-based Filtering**: Optional maximum distance constraint  
+✅ **Angle Threshold Control**: Configurable rotation angle limits  
+✅ **Multigeometry Support**: Handles both simple and complex geometries  
+✅ **Rotation Tracking**: Adds `_rotated` field to track which polygons were modified  
+✅ **Geometry Validation**: Built-in checks for geometry integrity  
 
 ## Algorithm
-First, the plugin creates a spatial index for the objects of the linear layer.
 
-Within the distance specified in the "Distance from line" field, for each line
-of the layer selected in the "Select line layer", the plugin finds the nearest
-polygon of the layer selected in the "Select polygon layer".
+The plugin processes each polygon using the following steps:
 
-If the line is the multipolyline, then each line of the multipolyline is
-processed as a separate.
+1. **Distance Check**: Calculates distance from polygon centroid to nearest line
+   - If `Max distance from line` > 0 and distance exceeds threshold → skip polygon
 
-Two edges of the polygon adjoin the node. If the angle between the edge and the
-nearest line segment is no larger than the value specified in the "Angle value"
-field, then the polygon rotates relative to the centroid so that the edge
-becomes parallel to the line segment.
+2. **Vertex Analysis**: Identifies the closest polygon vertex to the nearest line
 
-Multipolygons are rotated by the same principle with using the nearest node
-and the centroid of the multipolygon.
+3. **Segment Evaluation**: Analyzes two adjacent segments of the closest vertex
 
-If both the angles between the edges and the line segment are less than the
-"Angle value", then for the rotation is selected the edge, which forms the
-smaller angle if in the settings are not chosen "Rotate by longest edge if both
-angles between polygon edges and line segment <= 'Angle value'".
+4. **Angle Calculation**: Computes rotation angles between line segment and polygon segments
 
-If the layer objects have geometry errors, rotation may not occur.
+5. **Rotation Decision**:
+   - If both angles ≤ `Max angle`:
+     - **Longest segment mode**: Rotates based on longest segment (or smallest angle if equal)
+     - **Default mode**: Rotates based on smallest angle
+   - If only one angle ≤ `Max angle`: Rotates based on that segment
 
-## Settings
-![][pptl]
+6. **Output Generation**: Creates rotated geometry with `_rotated` field indicator
 
-I think `Rotate only selected polygons` and `Do not rotate multipolygons`
-options are not needed in explanations.
+![Default Usage][default_usage]
 
-### Distance from line
-If value is 0, plugin will process all polygons. In the following example, the
-distance is 50 m (showed by grey).
+### Key Notes
+- Rotation center is the polygon centroid
+- Interior rings and duplicate vertices are ignored
+- Multipolygons use the same principles as simple polygons
+- The `_rotated` field indicates transformation status (boolean)
 
-* before:
+![Rotated Field][_rotated]
 
-![][distance_before]
+## Configuration
 
-* after:
+### Max Distance from Line
+- **Type**: Float (optional)
+- **Range**: ≥ 0.0
+- **Default**: 0.0 (processes all polygons)
+- **Unit**: Line layer CRS units
 
-![][distance_after]
+When set to 0.0, all polygons are processed regardless of distance.
 
-### Angle value
-Value, degrees:
-* min: 0
-* max 89.9
+![Distance Configuration][distance]
 
-The following example shows the angle between one edge of the polygon and the
-nearest line segment. The angle for the second side is similar. The plugin
-compares these angles with the values from the settings.
+### Max Angle for Rotation
+- **Type**: Float (optional)  
+- **Range**: 0.0 - 89.9 degrees
+- **Default**: 89.9
+- **Purpose**: Limits maximum rotation angle
 
-![][angle]
+![Angle Configuration][angle]
 
-### Save only selected
-If not chosen "Save only selected", to new layer will saved both rotated and
-unrotated polygons. This option makes sense if chosen "Rotate only selected
-polygons".
+### Rotate by Longest Segment
+- **Type**: Boolean
+- **Default**: False
+- **Behavior**: When both segments have valid angles (≤ Max angle), prioritizes the longest segment
 
-### Rotate by longest edge if both angles between polygon edges and line segment <= 'Angle value'
-* before:
+![Longest Segment Option][by_longest]
 
-![][long_before]
+### Skip Multipolygons
+- **Type**: Boolean
+- **Default**: False
+- **Purpose**: Excludes multipolygon geometries from processing
 
-* if not checked (angle near the short edge less than the long edge):
+## Usage Examples
 
-![][long_without]
+### Basic Usage
+**Input**: Building polygons + Road centerlines  
+**Output**: Buildings aligned parallel to nearest roads
 
-* if checked:
+### Advanced Filtering
+**Max Distance**: 50.0 (meters)  
+**Max Angle**: 45.0 (degrees)  
+**Result**: Only buildings within 50m of roads, with rotation ≤ 45°
 
-![][long_with]
+## Requirements
 
-Copyright (C) 2016-2023 by Andrii Liekariev
+- **QGIS**: 3.0 or higher
+- **Dependencies**: Standard QGIS processing framework
 
-[before]: https://github.com/Elfpkck/pptl_images/blob/master/before.png?raw=true
-[after]: https://github.com/Elfpkck/pptl_images/blob/master/after.png?raw=true
-[processing_options]: https://github.com/Elfpkck/pptl_images/blob/master/processing_options.png?raw=true
-[pptl]: https://github.com/Elfpkck/pptl_images/blob/master/pptl.png?raw=true
-[distance_before]: https://github.com/Elfpkck/pptl_images/blob/master/distance_before.png?raw=true
-[distance_after]: https://github.com/Elfpkck/pptl_images/blob/master/distance_after.png?raw=true
-[angle]: https://github.com/Elfpkck/pptl_images/blob/master/angle.png?raw=true
-[long_before]: https://github.com/Elfpkck/pptl_images/blob/master/long_before.png?raw=true
-[long_without]: https://github.com/Elfpkck/pptl_images/blob/master/long_without.png?raw=true
-[long_with]: https://github.com/Elfpkck/pptl_images/blob/master/long_with.png?raw=true
+### Compatibility
+- ✅ Windows
+- ✅ macOS  
+- ✅ Linux
+- ✅ All QGIS LTR versions
+
+## Best Practices
+
+⚠️ **Important**: Validate and fix geometry errors before running the plugin for optimal results.
+
+### Recommended Workflow
+1. **Prepare Data**: Ensure polygon and line layers are in the same CRS
+2. **Fix Geometries**: Use **Processing Toolbox** → **Vector geometry** → **Fix Geometries**
+3. **Test Parameters**: Start with default settings on a small dataset
+4. **Batch Process**: Apply to full dataset with optimized parameters
+
+### Performance Tips
+- Use spatial indexes for large datasets
+- Consider processing in smaller batches for very large datasets
+- Test different parameter combinations on representative samples
+
+## Development
+
+See [DEVELOPMENT.md](DEVELOPMENT.md) for detailed development setup and contribution guidelines.
+
+## License
+
+Copyright (C) 2016-2025 by Andrii Liekariev
+
+This project is licensed under the [GNU General Public License v2.0](LICENSE.txt).
+
+## Support
+
+- 🐛 [Report Issues](https://github.com/Elfpkck/polygons_parallel_to_line/issues)
+- 💬 [Discussion Forum](https://github.com/Elfpkck/polygons_parallel_to_line/discussions)
+
+---
+
+**Made with ❤️ for the QGIS community**
+
+<!-- Image References -->
+[intro]: https://raw.githubusercontent.com/Elfpkck/pptl_images/refs/heads/master/intro.gif
+[install]: https://raw.githubusercontent.com/Elfpkck/pptl_images/refs/heads/master/install.gif
+[open]: https://raw.githubusercontent.com/Elfpkck/pptl_images/refs/heads/master/open.gif
+[default_usage]: https://raw.githubusercontent.com/Elfpkck/pptl_images/refs/heads/master/default_usage.gif
+[_rotated]: https://raw.githubusercontent.com/Elfpkck/pptl_images/refs/heads/master/_rotated.png
+[distance]: https://raw.githubusercontent.com/Elfpkck/pptl_images/refs/heads/master/distance.gif
+[angle]: https://raw.githubusercontent.com/Elfpkck/pptl_images/refs/heads/master/angle.gif
+[by_longest]: https://raw.githubusercontent.com/Elfpkck/pptl_images/refs/heads/master/by_longest.gif
