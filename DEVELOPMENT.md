@@ -57,7 +57,7 @@ These instructions are specific to PyCharm.
 
 1. Run:
    ```shell
-   zip -r pptl.zip PolygonsParallelToLine/ -x "*.DS_Store" "__MACOSX"
+   zip -r pptl.zip PolygonsParallelToLine/ -x "*.DS_Store" "__MACOSX" "*/__pycache__/*" "*.pyc" "*.pyo" "*~" "*.bak"
    ```
 2. Open https://plugins.qgis.org/plugins/PolygonsParallelToLine/version/add/
 3. Upload `pptl.zip`
