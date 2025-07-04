@@ -11,6 +11,7 @@ from qgis.core import (
     QgsProcessingFeatureSource,
 )
 
+from .const import COLUMN_NAME
 from .line import LineLayer
 from .polygon import Polygon
 from .rotator import PolygonRotator
@@ -148,24 +149,19 @@ class PolygonsParallelToLine:
 
     def create_new_feature(self, poly: Polygon) -> QgsFeature:
         """
-        Creates a new feature based on the given polygon.
+        Creates a new feature and sets its geometry and attribute based on the provided polygon.
 
-        This method initializes a new feature using predefined fields, sets its geometry based on the input polygon,
-        and transfers attributes from the polygon to the new feature. If the polygon was rotated, an additional
-        attribute with a value of 1 is appended to the attributes.
+        This method creates a new QgsFeature using the provided fields, sets the geometry of the new feature to
+        match the geometry of the provided polygon, and assigns the attribute value to indicate whether the polygon
+        is rotated. The created QgsFeature is then returned.
 
-        :param poly: The input polygon containing geometry and attributes for creating the new feature.
+        :param poly: The polygon object whose geometry and rotation status are used to define the new feature's
+            properties.
         :type poly: Polygon
-        :return: A new feature with geometry derived from the polygon and attributes, including a flag for rotation if
-            applicable.
+        :return: The newly created QgsFeature with its geometry and attributes set accordingly.
         :rtype: QgsFeature
         """
         new_feature = QgsFeature(self.params.fields)
         new_feature.setGeometry(poly.geom)
-        attrs = poly.feature.attributes()
-
-        if poly.is_rotated:
-            attrs.append(1)  # Add 1 if the polygon was rotated
-
-        new_feature.setAttributes(attrs)
+        new_feature.setAttribute(COLUMN_NAME, poly.is_rotated)
         return new_feature

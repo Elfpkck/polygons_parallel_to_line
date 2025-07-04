@@ -14,6 +14,7 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QMetaType  # type: ignore
 
+from .const import COLUMN_NAME
 from .pptl import Params, PolygonsParallelToLine
 
 if TYPE_CHECKING:
@@ -46,8 +47,6 @@ class Algorithm(QgsProcessingAlgorithm):
     :type DISTANCE: str
     :ivar ANGLE: Parameter ID for specifying the maximum angle for rotation.
     :type ANGLE: str
-    :ivar COLUMN_NAME: Name of the attribute column used to store rotation status for each feature.
-    :type COLUMN_NAME: str
     """
 
     OUTPUT_LAYER = "OUTPUT"
@@ -57,7 +56,6 @@ class Algorithm(QgsProcessingAlgorithm):
     NO_MULTI = "NO_MULTI"
     DISTANCE = "DISTANCE"
     ANGLE = "ANGLE"
-    COLUMN_NAME = "_rotated"
 
     def createInstance(self) -> Algorithm:  # noqa: N802
         return self.__class__()
@@ -88,28 +86,19 @@ class Algorithm(QgsProcessingAlgorithm):
             )
         )
         self.addParameter(
-            QgsProcessingParameterFeatureSource(self.LINE_LAYER, "Select line layer", [QgsProcessing.TypeVectorLine])
+            QgsProcessingParameterFeatureSource(self.LINE_LAYER, "Line layer", [QgsProcessing.TypeVectorLine])
         )
         self.addParameter(
-            QgsProcessingParameterFeatureSource(
-                self.POLYGON_LAYER, "Select polygon layer", [QgsProcessing.TypeVectorPolygon]
-            )
+            QgsProcessingParameterFeatureSource(self.POLYGON_LAYER, "Polygon layer", [QgsProcessing.TypeVectorPolygon])
         )
         self.addParameter(
-            QgsProcessingParameterBoolean(
-                self.LONGEST,
-                "Rotate by the longest segment if both angles between polygon segments and line segment <="
-                " 'Angle value'",
-                defaultValue=False,
-            )
+            QgsProcessingParameterBoolean(self.LONGEST, "Rotate by the longest segment", defaultValue=False)
         )
-        self.addParameter(
-            QgsProcessingParameterBoolean(self.NO_MULTI, "Do not rotate multipolygons", defaultValue=False)
-        )
+        self.addParameter(QgsProcessingParameterBoolean(self.NO_MULTI, "Skip multipolygons", defaultValue=False))
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.DISTANCE,
-                "Distance from line",
+                "Max distance from line (in units of line layer CRS) (optional)",
                 type=QgsProcessingParameterNumber.Double,
                 minValue=0.0,
                 defaultValue=0.0,
@@ -118,7 +107,7 @@ class Algorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.ANGLE,
-                "Angle value",
+                "Max angle (in degrees) for rotation (optional)",
                 type=QgsProcessingParameterNumber.Double,
                 minValue=0.0,
                 maxValue=89.9,
@@ -128,24 +117,23 @@ class Algorithm(QgsProcessingAlgorithm):
 
     def _create_output_fields(self, source_layer: QgsProcessingFeatureSource) -> QgsFields:
         """
-        Creates a new set of output fields for a given source layer by copying all fields from the source layer except
-        the rotation field if it exists, then adds the rotation field to store rotation status.
+        Creates output fields by appending a specific field if it does not already exist.
 
-        :param source_layer: The source layer from which fields are copied and processed.
+        This function retrieves the fields from the input source layer, checks if a field with the specified name
+        exists, and appends it if missing. The new field has a Boolean type. The resulting set of fields is then
+        returned.
+
+        :param source_layer: The input source layer from which fields are retrieved.
         :type source_layer: QgsProcessingFeatureSource
-        :return: A new set of fields copied from the source layer, excluding the column matching the specified column
-            name, with an additional field added.
+        :return: The updated fields containing the original fields and the new field, if added.
         :rtype: QgsFields
         """
-        output_fields = QgsFields()
+        fields = source_layer.fields()
+        field_idx = fields.indexFromName(COLUMN_NAME)
+        if field_idx == -1:
+            fields.append(QgsField(COLUMN_NAME, QMetaType.Bool))
 
-        for field in source_layer.fields():
-            if self.COLUMN_NAME == field.name():
-                continue
-            output_fields.append(field)
-
-        output_fields.append(QgsField(self.COLUMN_NAME, QMetaType.Int))
-        return output_fields
+        return fields
 
     def processAlgorithm(  # noqa: N802
         self, parameters: dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback

@@ -1,3 +1,13 @@
+"""
+Represents a utility for processing lines, line layers, and geometric segments in GIS.
+
+This module defines three primary classes for working with lines and geometrical relationships in a GIS context.
+The `Line` class facilitates operations on individual line geometries, such as finding the closest segment to a
+given point. The `LineLayer` class is designed to handle spatial queries and mapping for layers of line
+geometries, leveraging spatial indexing for efficiency. Finally, the `Segment` class models straight-line
+segments with additional properties like length and azimuth calculated on demand.
+"""
+
 from __future__ import annotations
 
 from functools import cached_property
