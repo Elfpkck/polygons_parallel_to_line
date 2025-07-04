@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING
 
 from qgis.core import QgsPointXY
@@ -13,29 +14,32 @@ if TYPE_CHECKING:
 
 class PolygonRotator:
     """
-    Handles rotation of polygon geometries based on specific geometric relationships and constraints.
+    Handles the behavior of rotating a polygon based on its segments and azimuth differences.
 
-    This class facilitates the rotation of a polygon based on the azimuth angles of its segments relative to a given
-    reference line. The rotation can be executed according to the smallest angle of adjustment or by prioritizing
-    the longest segment. Various geometric methods are utilized to determine the azimuths, angle differences, and
-    relevant polygon segments.
+    This class provides methods for determining and executing rotational adjustments on a polygon. The rotation logic
+    accounts for the relationship between a polygon's vertices, the adjacent segments, and the closest external line
+    segment. Decisions are based on calculated azimuth differences and configurable thresholds. Optional behavior
+    includes determining the rotation based on either the longest polygon segment or the smallest rotation angle.
 
-    :ivar poly: The polygon geometry to be rotated.
+    :ivar poly: The polygon object to be rotated.
     :type poly: Polygon
-    :ivar angle_threshold: The maximum angle deviation for permissible rotation.
+    :ivar angle_threshold: The angle threshold used to determine valid rotations.
     :type angle_threshold: float
-    :ivar by_longest: A flag indicating whether the rotation prioritizes the longest segment or smallest angle.
+    :ivar by_longest: Indicates whether rotation should be based on the longest segment.
     :type by_longest: bool
-    :ivar prev_poly_segment: The polygon segment preceding the closest vertex to the reference line.
+    :ivar prev_poly_segment: The polygon segment preceding the closest vertex.
     :type prev_poly_segment: Segment
-    :ivar next_poly_segment: The polygon segment following the closest vertex to the reference line.
+    :ivar next_poly_segment: The polygon segment following the closest vertex.
     :type next_poly_segment: Segment
-    :ivar prev_delta_azimuth: The azimuth difference between the previous polygon segment and the reference
-                              line segment.
+    :ivar prev_delta_azimuth: The azimuth difference between the line segment and the previous polygon segment.
     :type prev_delta_azimuth: float
-    :ivar next_delta_azimuth: The azimuth difference between the next polygon segment and the reference line segment.
+    :ivar next_delta_azimuth: The azimuth difference between the line segment and the next polygon segment.
     :type next_delta_azimuth: float
+    :ivar ABSOLUTE_TOLERANCE: Tolerance value for numerical closeness comparison in rotation.
+    :type ABSOLUTE_TOLERANCE: float
     """
+
+    ABSOLUTE_TOLERANCE = 1e-8
 
     def __init__(self, poly: Polygon, closest_line: Line, angle_threshold: float, by_longest: bool):
         self.poly = poly
@@ -67,17 +71,18 @@ class PolygonRotator:
 
     def rotate_by_angle(self, angle: float) -> None:
         """
-        Rotates the polygon by a given angle.
+        Rotates a polygon by a specified angle if the angle is not close to zero.
 
-        This method updates the orientation of the polygon by rotating it around its center by the specified angle.
-        The rotation is applied in a clockwise direction if the angle is positive and counterclockwise if the angle is
-        negative. The angle is specified in degrees.
+        This method checks if the provided angle is approximately zero using a tolerance value. If the angle is not
+        close to zero, the method applies a rotation transformation to the polygon.
 
-        :param angle: The angle by which to rotate the polygon.
+        :param angle: The angle, in degrees, by which the polygon should be rotated.
         :type angle: float
         :return: None
         """
-        self.poly.rotate(angle)
+        is_close_to_zero = math.isclose(angle, 0.0, abs_tol=self.ABSOLUTE_TOLERANCE)
+        if not is_close_to_zero:
+            self.poly.rotate(angle)
 
     def rotate_by_longest_segment(self) -> None:
         """

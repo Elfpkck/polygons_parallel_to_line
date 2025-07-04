@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from qgis.core import Qgis, QgsProcessingException
+from qgis.core import Qgis, QgsGeometry, QgsProcessingException
 
 from .line import Segment
 
 if TYPE_CHECKING:
-    from qgis.core import QgsFeature, QgsGeometry, QgsPoint, QgsPointXY
+    from qgis.core import QgsFeature, QgsPoint, QgsPointXY
 
     from .line import Line
 
@@ -57,22 +57,25 @@ class Polygon:
 
     def get_adjacent_segments(self, target_vertex: QgsPoint) -> tuple[Segment, Segment]:
         """
-        Retrieve the segments adjacent to a specified target vertex within a geometry.
+        Finds and retrieves the two segments adjacent to a given vertex within a geometry.
 
-        This method iterates through the geometries in a collection and identifies the vertex that matches the given
-        target. Upon locating the target vertex, it calculates the adjacent vertices and returns two segments, each
-        defined by the target vertex and one of the adjacent vertices. If the target vertex is not found within
-        the geometry, an error is raised.
+        The method processes the geometry associated with a feature by cleaning it up, removing interior rings as
+        well as duplicate nodes, and then checking each geometry part for adjacency to the provided target vertex.
+        It identifies the indices of the vertices adjacent to the target vertex and constructs the corresponding
+        segments.
 
-        :param target_vertex: The vertex within the geometry for which adjacent segments are to be determined.
-        :type target_vertex: QgsPoint
-        :return: A tuple containing two segments:
-            - The segment between the target vertex and the previous vertex.
-            - The segment between the target vertex and the next vertex.
+        :param target_vertex: The vertex for which the adjacent segments need to be determined, represented as a
+            QgsPoint.
+        :return: A tuple containing two Segment objects. Each Segment represents a start and end vertex adjacent to
+            the passed target_vertex.
         :rtype: tuple[Segment, Segment]
-        :raises QgsProcessingException: If the specified target vertex is not found within the geometry of the feature.
+        :raises QgsProcessingException: If the target_vertex is not found within the geometry of the feature.
         """
-        for part_geom in self.geom.asGeometryCollection():
+        temp_geom = QgsGeometry(self.geom)
+        temp_geom.removeInteriorRings()
+        temp_geom.removeDuplicateNodes()
+
+        for part_geom in temp_geom.asGeometryCollection():
             for i, current_vertex in enumerate(part_geom.vertices()):
                 if current_vertex == target_vertex:
                     prev_vertex_idx, next_vertex_idx = part_geom.adjacentVertices(i)
