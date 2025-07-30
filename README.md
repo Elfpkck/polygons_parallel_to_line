@@ -3,7 +3,7 @@
 
 [![QGIS](https://qgis.github.io/qgis-uni-navigation/logo.svg)](https://qgis.org)
 
-# Polygons Parallel to Line — QGIS Python Plugin
+# Polygons Parallel to Line - QGIS Python Plugin
 
 A QGIS processing plugin that automatically rotates polygons to align them parallel with their nearest lines based on configurable parameters.
 
@@ -61,8 +61,8 @@ A QGIS processing plugin that automatically rotates polygons to align them paral
 
 The plugin processes each polygon using the following steps:
 
-1. **Distance Check**: Calculates distance from polygon centroid to nearest line
-   - If `Max distance from line` > 0 and distance exceeds threshold → skip polygon
+1. **Distance Check**: Calculates distance from polygon centroid to the nearest line
+   - If `Max distance from line` > 0 and distance exceeds a threshold → skip polygon
 
 2. **Vertex Analysis**: Identifies the closest polygon vertex to the nearest line
 
@@ -73,14 +73,14 @@ The plugin processes each polygon using the following steps:
 5. **Rotation Decision**:
    - If both angles ≤ `Max angle`:
      - **Longest segment mode**: Rotates based on longest segment (or smallest angle if equal)
-     - **Default mode**: Rotates based on smallest angle
+     - **Default mode**: Rotates based on the smallest angle
    - If only one angle ≤ `Max angle`: Rotates based on that segment
 
 6. **Output Generation**: Creates rotated geometry with `_rotated` field indicator
 
 ![Default Usage][default_usage]
 
-### Key Notes
+### Keynotes
 - Rotation center is the polygon centroid
 - Interior rings and duplicate vertices are ignored
 - Multipolygons use the same principles as simple polygons
@@ -104,7 +104,7 @@ When set to 0.0, all polygons are processed regardless of distance.
 - **Type**: Float (optional)  
 - **Range**: 0.0 - 89.9 degrees
 - **Default**: 89.9
-- **Purpose**: Limits maximum rotation angle
+- **Purpose**: Limits a maximum rotation angle
 
 ![Angle Configuration][angle]
 
@@ -124,12 +124,12 @@ When set to 0.0, all polygons are processed regardless of distance.
 
 ### Basic Usage
 **Input**: Building polygons + Road centerlines  
-**Output**: Buildings aligned parallel to nearest roads
+**Output**: Buildings aligned parallel to the nearest roads
 
 ### Advanced Filtering
 **Max Distance**: 50.0 (meters)  
 **Max Angle**: 45.0 (degrees)  
-**Result**: Only buildings within 50m of roads, with rotation ≤ 45°
+**Result**: Only buildings within 50 m of roads, with rotation ≤ 45°
 
 ## Requirements
 
@@ -154,7 +154,7 @@ When set to 0.0, all polygons are processed regardless of distance.
 
 ### Performance Tips
 - Use spatial indexes for large datasets
-- Consider processing in smaller batches for very large datasets
+- Consider processing in smaller batches for huge datasets
 - Test different parameter combinations on representative samples
 
 ## Development
