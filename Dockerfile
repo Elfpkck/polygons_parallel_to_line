@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 qgis/qgis:3.44.1
+FROM --platform=linux/amd64 qgis/qgis:3.44.2
 
 # `--break-system-packages` allows installing poetry to system Python
 # `system-site-packages` is required to access QGIS libraries from the virtual environment (qgis is not in PyPI)
