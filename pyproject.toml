@@ -42,7 +42,7 @@ packages = [{include = "PolygonsParallelToLine"}]
 python = "^3.9"
 
 [tool.poetry.group.ci.dependencies]
-pre-commit = "4.2.0"
+pre-commit = "4.3.0"
 pytest-cov = "6.2.1"
 pytest-qgis = "2.1.0"
 
