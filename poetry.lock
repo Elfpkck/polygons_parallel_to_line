@@ -261,13 +261,13 @@ virtualenv = ">=20.10.0"
 
 [[package]]
 name = "pydevd-pycharm"
-version = "252.23892.364"
+version = "252.25557.130"
 description = "PyCharm Debugger (used in PyCharm and PyDev)"
 optional = false
 python-versions = "*"
 groups = ["local"]
 files = [
-    {file = "pydevd_pycharm-252.23892.364.tar.gz", hash = "sha256:fde8d5e98581fd7bae9de74f644f85e75db9218ee5ceff6fdb73e22b3f7637ca"},
+    {file = "pydevd_pycharm-252.25557.130.tar.gz", hash = "sha256:c4322b9e44ff4077db89cd356fd367569bc91b9e6947b9e643467d2073a89dc4"},
 ]
 
 [[package]]
