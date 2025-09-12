@@ -30,25 +30,22 @@ explicit_package_bases = true
 disallow_untyped_defs = true
 exclude = ['.*/plugin.py', '.*/provider.py', '.*/test.*', 'PolygonsParallelToLine/__init__.py']
 
-[tool.poetry]
+[project]
 name = "polygons-parallel-to-line"
-version = "0.1.0"
+version = "1.1"
 description = ""
-authors = ["Andrii Liekariev <elfpkck@gmail.com>"]
+authors = [{ name = "Andrii Liekariev", email = "elfpkck@gmail.com" }]
 readme = "README.md"
-packages = [{include = "PolygonsParallelToLine"}]
+license = "GPL-2.0-or-later"
+requires-python = ">=3.9"
 
-[tool.poetry.dependencies]
-python = "^3.9"
-
-[tool.poetry.group.ci.dependencies]
-pre-commit = "4.3.0"
-pytest-cov = "6.2.1"
-pytest-qgis = "2.1.0"
-
-[tool.poetry.group.local.dependencies]
-pydevd-pycharm = "*"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[dependency-groups]
+ci = [
+    "pre-commit>=4.3.0",
+    "pytest-cov==6.2.1",
+    "pytest-qgis==2.1.0",
+]
+local = [
+    {include-group = "ci"},
+    "pydevd-pycharm",
+]

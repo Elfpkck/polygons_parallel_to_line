@@ -15,10 +15,10 @@
 
 These instructions are specific to PyCharm.
 
-1. Set up the `poetry` Python interpreter.
+1. Set up the `uv` Python interpreter.
 2. Run the following commands:
     ```shell
-    poetry install
+    uv sync --group local
     make install-local
     ```
 3. Set up the Python Debug Server in PyCharm:
