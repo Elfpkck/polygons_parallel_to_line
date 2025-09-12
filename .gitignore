@@ -2,3 +2,4 @@
 /.coverage
 /coverage.xml
 /junit.xml
+/uv.lock
