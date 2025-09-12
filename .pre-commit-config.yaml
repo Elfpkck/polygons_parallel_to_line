@@ -67,11 +67,6 @@ repos:
   - id: end-of-file-fixer
     language_version: python
   - id: check-toml
-- repo: https://github.com/dhruvmanila/remove-print-statements
-  rev: v0.5.2
-  hooks:
-  - id: remove-print-statements
-    args: [--verbose, --dry-run]
 - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
   rev: v2.11.0
   hooks:
