@@ -12,7 +12,7 @@ from qgis.core import (
     QgsProcessingParameterFeatureSource,
     QgsProcessingParameterNumber,
 )
-from qgis.PyQt.QtCore import QMetaType  # type: ignore
+from qgis.PyQt.QtCore import QMetaType  # type: ignore[import-not-found]
 
 from .const import COLUMN_NAME
 from .pptl import Params, PolygonsParallelToLine

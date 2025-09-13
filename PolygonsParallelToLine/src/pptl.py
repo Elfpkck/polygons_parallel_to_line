@@ -87,18 +87,19 @@ class PolygonsParallelToLine:
     def run(self) -> None:
         """
         Executes the main functionality of the object, involving validation and manipulation of polygon-related data.
-        The function performs a series of predefined operations critical to the object’s intended behavior.
+        The function performs a series of predefined operations critical to the object's intended behavior.
         Specifically, it validates a polygon layer and applies a rotation operation to the polygons.
 
         :return: None
         """
-        # pydevd_pycharm.settrace("127.0.0.1", port=53100, stdoutToServer=True, stderrToServer=True)
+        # pydevd_pycharm.settrace("127.0.0.1", port=53100, stdoutToServer=True, stderrToServer=True) # noqa: ERA001
         self.validate_polygon_layer()
         self.rotate_polygons()
 
     def validate_polygon_layer(self) -> None:
         if not self.total_number:
-            raise QgsProcessingException("Layer does not have any polygons")
+            msg = "Layer does not have any polygons"
+            raise QgsProcessingException(msg)
 
     def rotate_polygons(self) -> None:
         """

@@ -108,7 +108,8 @@ class LineLayer:
         closest_line_id = self.spatial_index.nearestNeighbor(point, 1)
 
         if not closest_line_id:
-            raise QgsProcessingException(f"No lines found near point {point}")
+            msg = f"No lines found near point {point}"
+            raise QgsProcessingException(msg)
 
         return Line(self.id_line_map[closest_line_id[0]])
 

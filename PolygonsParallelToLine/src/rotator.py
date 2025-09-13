@@ -41,7 +41,7 @@ class PolygonRotator:
 
     ABSOLUTE_TOLERANCE = 1e-8
 
-    def __init__(self, poly: Polygon, closest_line: Line, angle_threshold: float, by_longest: bool):
+    def __init__(self, poly: Polygon, closest_line: Line, angle_threshold: float, *, by_longest: bool):
         self.poly = poly
         self.angle_threshold = angle_threshold
         self.by_longest = by_longest
@@ -53,10 +53,12 @@ class PolygonRotator:
 
     def rotate(self) -> None:
         """
-        Rotates the object based on the specified conditions and angle thresholds. The rotation logic depends on
-        whether the azimuth differences, `prev_delta_azimuth` and `next_delta_azimuth`, fall within the provided angle
-        threshold. If the conditions are met, it either rotates by the longest segment or by the smallest angle. It may
-        also perform rotation based on the specific azimuth difference if only one of them satisfies the threshold.
+        Rotates the object based on the specified conditions and angle thresholds.
+
+        The rotation logic depends on whether the azimuth differences, `prev_delta_azimuth` and `next_delta_azimuth`,
+        fall within the provided angle threshold. If the conditions are met, it either rotates by the longest segment
+        or by the smallest angle. It may also perform rotation based on the specific azimuth difference if only one
+        of them satisfies the threshold.
 
         :return: None
         """
@@ -104,8 +106,10 @@ class PolygonRotator:
 
     def rotate_by_smallest_angle(self) -> None:
         """
-        Rotates the object by the smallest absolute angle difference. It compares the absolute values of the previous
-        and next azimuth deltas and invokes the rotation method with the smaller magnitude delta.
+        Rotates the object by the smallest absolute angle difference.
+
+        It compares the absolute values of the previous and next azimuth deltas and invokes the rotation method with
+        the smaller magnitude delta.
 
         :raises ValueError: Raises an exception if the rotation operation is invalid.
         :return: This method returns nothing; it performs the operation of rotating the object using the appropriate
