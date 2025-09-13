@@ -149,7 +149,7 @@ POLYGONS = (
 def test_main_functionality(
     lines, polys, expected, _rotated, distance, angle, longest, no_multi, qgis_processing, add_features, converter
 ):
-    # pydevd_pycharm.settrace("host.docker.internal", port=53100, stdoutToServer=True, stderrToServer=True)
+    # pydevd_pycharm.settrace("host.docker.internal", port=53100, stdoutToServer=True, stderrToServer=True) # noqa: ERA001
     line_layer = QgsVectorLayer("linestring", "temp_line", "memory")
     add_features(vector_layer=line_layer, wkt_geometries=lines)
 
