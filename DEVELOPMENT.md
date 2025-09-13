@@ -7,7 +7,7 @@
     ```shell
     make build
     make run
-    make install-ci
+    make install
     make test
     ```
 
@@ -18,8 +18,8 @@ These instructions are specific to PyCharm.
 1. Set up the `uv` Python interpreter.
 2. Run the following commands:
     ```shell
-    uv sync --group local
-    make install-local
+    uv sync
+    make install-dev
     ```
 3. Set up the Python Debug Server in PyCharm:
     - IDE host name: `127.0.0.1`
