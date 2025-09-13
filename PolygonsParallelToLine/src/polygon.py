@@ -84,7 +84,8 @@ class Polygon:
                         Segment(start=target_vertex, end=part_geom.vertexAt(next_vertex_idx)),
                     )
 
-        raise QgsProcessingException(f"Vertex {target_vertex} not found in polygon {self.feature.id()}")
+        msg = f"Vertex {target_vertex} not found in polygon {self.feature.id()}"
+        raise QgsProcessingException(msg)
 
     def rotate(self, angle: float) -> Qgis.GeometryOperationResult:
         """

@@ -1,51 +1,71 @@
-[tool.black]
-line-length = 120
+[dependency-groups]
+ci = [
+  "pre-commit>=4.3.0",
+  "pytest-cov==6.2.1",
+  "pytest-qgis==2.1.0"
+]
+local = [
+  {include-group = "ci"},
+  "pydevd-pycharm"
+]
+
+[project]
+authors = [{name = "Andrii Liekariev", email = "elfpkck@gmail.com"}]
+description = ""
+license = "GPL-2.0-or-later"
+name = "polygons-parallel-to-line"
+readme = "README.md"
+requires-python = ">=3.9"
+version = "1.1"
+
+[tool.coverage.report]
+exclude_also = [
+  "if TYPE_CHECKING",
+  "if cmd_folder not in sys.path"
+]
 
 [tool.coverage.run]
 branch = true
 
-[tool.coverage.report]
-exclude_also = [
-    "if TYPE_CHECKING",
-    "if cmd_folder not in sys.path",
-    ]
-
-[tool.isort]
-multi_line_output = 3
-include_trailing_comma = true
-profile = "black"
-combine_as_imports = true
-force_alphabetical_sort_within_sections = true
-lines_between_types = 0
-src_paths = ["./"]
-known_third_party = []
-known_first_party = []
-
 [tool.mypy]
-follow_imports = "silent"
-ignore_missing_imports = false
-warn_return_any = true
-namespace_packages = true
-explicit_package_bases = true
 disallow_untyped_defs = true
 exclude = ['.*/plugin.py', '.*/provider.py', '.*/test.*', 'PolygonsParallelToLine/__init__.py']
+explicit_package_bases = true
+follow_imports = "silent"
+ignore_missing_imports = false
+namespace_packages = true
+warn_return_any = true
 
-[project]
-name = "polygons-parallel-to-line"
-version = "1.1"
-description = ""
-authors = [{ name = "Andrii Liekariev", email = "elfpkck@gmail.com" }]
-readme = "README.md"
-license = "GPL-2.0-or-later"
-requires-python = ">=3.9"
+[tool.ruff]
+line-length = 120
+target-version = "py39"
 
-[dependency-groups]
-ci = [
-    "pre-commit>=4.3.0",
-    "pytest-cov==6.2.1",
-    "pytest-qgis==2.1.0",
+[tool.ruff.lint]
+ignore = [
+  "ANN204",
+  "COM812",
+  "D100",
+  "D101",
+  "D102",
+  "D104",
+  "D107",
+  "D205",
+  "D212",
+  "D401",
+  "INP001",
+  "N999",
+  "RET503"
 ]
-local = [
-    {include-group = "ci"},
-    "pydevd-pycharm",
-]
+select = ["ALL"]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+force-sort-within-sections = true
+
+[tool.ruff.lint.per-file-ignores]
+"PolygonsParallelToLine/__init__.py" = ["ANN001", "ARG001", "D103", "N802", "PLC0415"]
+"algorithm.py" = ["ARG002", "I001"]
+"azimuth.py" = ["PLR2004"]
+"plugin.py" = ["I001", "N802"]
+"provider.py" = ["ANN002", "ANN003", "ARG002", "N802"]
+"tests/*" = ["ANN001", "ANN201", "ARG001", "D103", "D413", "E501", "PLR0913", "PT003", "PT006", "S101"]
