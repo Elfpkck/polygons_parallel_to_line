@@ -1,16 +1,16 @@
 [dependency-groups]
-ci = [
-  "pre-commit>=4.3.0",
-  "pytest-cov==6.2.1",
-  "pytest-qgis==2.1.0"
-]
-local = [
-  {include-group = "ci"},
-  "pydevd-pycharm"
+dev = [
+  "pydevd-pycharm",
+  "ruff>=0.13.0"
 ]
 
 [project]
 authors = [{name = "Andrii Liekariev", email = "elfpkck@gmail.com"}]
+dependencies = [
+  "pre-commit==4.3.0",
+  "pytest-cov==6.2.1",
+  "pytest-qgis==2.1.0"
+]
 description = ""
 license = "GPL-2.0-or-later"
 name = "polygons-parallel-to-line"
