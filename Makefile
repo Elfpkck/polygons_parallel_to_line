@@ -11,18 +11,18 @@ run:
 		-e PYTHONPATH=/pptl \
 		qgis-for-pptl:ci
 
-install-ci:
-	docker exec -t qgis_pptl sh -c "cd /pptl && uv venv --system-site-packages --clear && uv sync --locked --group ci"
+install:
+	docker exec -t qgis_pptl sh -c "cd /pptl && uv venv --allow-existing --system-site-packages && uv sync --locked --no-dev"
 
 # For an unknown reason, I need to add the pydevd package in this specific way to make the PyCharm remote debugger work with Docker
-install-local:
-	docker exec -t qgis_pptl sh -c "cd /pptl && uv venv --system-site-packages --clear && uv sync --locked --group local && uv pip install pydevd"
+install-dev:
+	docker exec -t qgis_pptl sh -c "cd /pptl && uv venv --allow-existing --system-site-packages && uv sync --locked && uv pip install pydevd"
 
 test:
-	docker exec -t qgis_pptl sh -c "cd /pptl && uv run pytest /pptl/tests --qgis_disable_gui"
+	docker exec -t qgis_pptl sh -c "cd /pptl && uv run --no-dev pytest /pptl/tests --qgis_disable_gui"
 
 test-coverage:
-	docker exec -t qgis_pptl sh -c "cd /pptl && uv run pytest /pptl/tests \
+	docker exec -t qgis_pptl sh -c "cd /pptl && uv run --no-dev pytest /pptl/tests \
 		--qgis_disable_gui \
 		--cov=/pptl \
 		--cov-report=term-missing:skip-covered \
