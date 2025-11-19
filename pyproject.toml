@@ -8,7 +8,7 @@ dev = [
 authors = [{name = "Andrii Liekariev", email = "elfpkck@gmail.com"}]
 dependencies = [
   "pre-commit==4.3.0",
-  "pytest-cov==6.2.1",
+  "pytest-cov==7.0.0",
   "pytest-qgis==2.1.0"
 ]
 description = ""
