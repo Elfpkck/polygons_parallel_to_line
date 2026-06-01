@@ -95,7 +95,7 @@ class Algorithm(QgsProcessingAlgorithm):
     def _create_output_fields(self, source_layer: QgsProcessingFeatureSource) -> QgsFields:
         fields = source_layer.fields()
         if fields.indexFromName(COLUMN_NAME) == -1:
-            fields.append(QgsField(COLUMN_NAME, QMetaType.Bool))
+            fields.append(QgsField(COLUMN_NAME, QMetaType.Type.Bool))
         return fields
 
     def processAlgorithm(  # noqa: N802
