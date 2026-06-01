@@ -1,16 +1,8 @@
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
 from qgis.core import QgsApplication
 
 from .provider import Provider
-
-cmd_folder = str(Path(__file__).parents[1])
-
-if cmd_folder not in sys.path:
-    sys.path.insert(0, cmd_folder)
 
 
 class Plugin:

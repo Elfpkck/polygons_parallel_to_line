@@ -41,7 +41,7 @@ A QGIS processing plugin that automatically rotates polygons to align them paral
 
 ## Quick Start
 
-1. **Access the Plugin**: Go to **Processing** → **Toolbox** → **Polygons Parallel to Line**
+1. **Access the Plugin**: Go to **Processing** → **Toolbox** → **Polygons parallel to lines**
 2. **Select Input Layers**: Choose your polygon and line layers
 3. **Configure Parameters**: Set distance and angle thresholds as needed
 4. **Run**: Execute the algorithm to generate aligned polygons
@@ -50,40 +50,42 @@ A QGIS processing plugin that automatically rotates polygons to align them paral
 
 ## Features
 
-✅ **Automatic Polygon Rotation**: Intelligently rotates polygons to align with nearest lines  
+✅ **Automatic Polygon Rotation**: Rotates polygons to align with the nearest line  
 ✅ **Distance-based Filtering**: Optional maximum distance constraint  
-✅ **Angle Threshold Control**: Configurable rotation angle limits  
-✅ **Multigeometry Support**: Handles both simple and complex geometries  
-✅ **Rotation Tracking**: Adds `_rotated` field to track which polygons were modified  
-✅ **Geometry Validation**: Built-in checks for geometry integrity  
+✅ **Angle Threshold Control**: Configurable angle threshold that gates which polygons are rotated  
+✅ **Multipolygon Handling**: Multipolygons are processed (or can be skipped) — see Keynotes for behavior  
+✅ **Rotation Tracking**: Adds a `_rotated` boolean field marking which polygons were modified  
 
 ## Algorithm
 
 The plugin processes each polygon using the following steps:
 
-1. **Distance Check**: Calculates distance from polygon centroid to the nearest line
-   - If `Max distance from line` > 0 and distance exceeds a threshold → skip polygon
+1. **Closest Line Selection**: Finds the line whose feature is the nearest neighbor of the polygon centroid
 
-2. **Vertex Analysis**: Identifies the closest polygon vertex to the nearest line
+2. **Distance Check**: If `Max distance from line` > 0 and the polygon-to-line geometry distance (closest edge of the polygon to the closest line) exceeds it → skip rotation
 
-3. **Segment Evaluation**: Analyzes two adjacent segments of the closest vertex
+3. **Vertex Analysis**: Identifies the polygon vertex closest to the nearest line
 
-4. **Angle Calculation**: Computes rotation angles between line segment and polygon segments
+4. **Segment Evaluation**: Takes the two polygon segments adjacent to that vertex
 
-5. **Rotation Decision**:
-   - If both angles ≤ `Max angle`:
-     - **Longest segment mode**: Rotates based on longest segment (or smallest angle if equal)
-     - **Default mode**: Rotates based on the smallest angle
-   - If only one angle ≤ `Max angle`: Rotates based on that segment
+5. **Angle Calculation**: Computes the signed angle (delta azimuth) between the closest line segment and each adjacent polygon segment
 
-6. **Output Generation**: Creates rotated geometry with `_rotated` field indicator
+6. **Rotation Decision** (each delta is compared against `Max angle`):
+   - If both deltas are within `Max angle`:
+     - **Longest segment mode**: Rotates by the delta of the longer segment (falls back to smallest delta if lengths are equal)
+     - **Default mode**: Rotates by the smaller delta
+   - If only one delta is within `Max angle`: Rotates by that delta
+   - If neither delta is within `Max angle`: No rotation is applied
+   - Rotations whose magnitude is effectively zero are skipped (avoids spurious `_rotated=True`)
+
+7. **Output Generation**: Writes the (possibly rotated) geometry with a `_rotated` boolean attribute
 
 ![Default Usage][default_usage]
 
 ### Keynotes
-- Rotation center is the polygon centroid
-- Interior rings and duplicate vertices are ignored
-- Multipolygons use the same principles as simple polygons
+- Rotation center is the polygon centroid (for multipolygons: the overall centroid of the whole multi-geometry)
+- Interior rings and duplicate vertices are ignored when picking the rotation pivot, but they are preserved in the output geometry
+- Multipolygons are rotated as a single rigid body around the overall centroid by the angle chosen from the part that contains the closest vertex — individual parts are not aligned independently
 - The `_rotated` field indicates transformation status (boolean)
 
 ![Rotated Field][_rotated]
@@ -104,7 +106,7 @@ When set to 0.0, all polygons are processed regardless of distance.
 - **Type**: Float (optional)  
 - **Range**: 0.0 - 89.9 degrees
 - **Default**: 89.9
-- **Purpose**: Limits a maximum rotation angle
+- **Purpose**: Threshold on the angle between a polygon segment and the closest line segment. A polygon is only rotated when at least one of its two adjacent segments has a delta angle within this threshold; otherwise the polygon is left unrotated. The applied rotation is bounded by this threshold.
 
 ![Angle Configuration][angle]
 
@@ -118,7 +120,7 @@ When set to 0.0, all polygons are processed regardless of distance.
 ### Skip Multipolygons
 - **Type**: Boolean
 - **Default**: False
-- **Purpose**: Excludes multipolygon geometries from processing
+- **Purpose**: When enabled, multipolygon features are passed through to the output unchanged (with `_rotated=False`) instead of being rotated. They are not removed from the output layer.
 
 ## Usage Examples
 
@@ -140,7 +142,6 @@ When set to 0.0, all polygons are processed regardless of distance.
 - ✅ Windows
 - ✅ macOS  
 - ✅ Linux
-- ✅ All QGIS LTR versions
 
 ## Best Practices
 
@@ -163,9 +164,9 @@ See [DEVELOPMENT.md](DEVELOPMENT.md) for detailed development setup and contribu
 
 ## License
 
-Copyright (C) 2016-2025 by Andrii Liekariev
+Copyright (C) 2016-2026 by Andrii Liekariev
 
-This project is licensed under the [GNU General Public License v2.0](LICENSE.txt).
+This project is licensed under the [GNU General Public License v2.0 or later](LICENSE.txt).
 
 ## Support
 

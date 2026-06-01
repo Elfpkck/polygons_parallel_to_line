@@ -26,29 +26,6 @@ if TYPE_CHECKING:
 
 
 class Algorithm(QgsProcessingAlgorithm):
-    """
-    Class for rotating polygons to align with lines in a vector layer.
-
-    This class provides an implementation for a QGIS processing algorithm that rotates polygon features in a given
-    vector layer to be parallel to features in another line vector layer. It includes functionality to customize
-    the rotation parameters such as angle limits, distance thresholds, and handling of multipolygons.
-
-    :ivar OUTPUT_LAYER: Output ID for the sink layer where rotated polygons will be stored.
-    :type OUTPUT_LAYER: str
-    :ivar LINE_LAYER: Input ID for the line vector layer used for alignment.
-    :type LINE_LAYER: str
-    :ivar POLYGON_LAYER: Input ID for the polygon vector layer to rotate.
-    :type POLYGON_LAYER: str
-    :ivar LONGEST: Parameter ID for specifying whether to use the longest polygon segment for rotation.
-    :type LONGEST: str
-    :ivar NO_MULTI: Parameter ID for specifying whether to exclude multipolygons from rotation.
-    :type NO_MULTI: str
-    :ivar DISTANCE: Parameter ID for specifying the distance threshold from the line.
-    :type DISTANCE: str
-    :ivar ANGLE: Parameter ID for specifying the maximum angle for rotation.
-    :type ANGLE: str
-    """
-
     OUTPUT_LAYER = "OUTPUT"
     LINE_LAYER = "LINE_LAYER"
     POLYGON_LAYER = "POLYGON_LAYER"
@@ -116,43 +93,14 @@ class Algorithm(QgsProcessingAlgorithm):
         )
 
     def _create_output_fields(self, source_layer: QgsProcessingFeatureSource) -> QgsFields:
-        """
-        Creates output fields by appending a specific field if it does not already exist.
-
-        This function retrieves the fields from the input source layer, checks if a field with the specified name
-        exists, and appends it if missing. The new field has a Boolean type. The resulting set of fields is then
-        returned.
-
-        :param source_layer: The input source layer from which fields are retrieved.
-        :type source_layer: QgsProcessingFeatureSource
-        :return: The updated fields containing the original fields and the new field, if added.
-        :rtype: QgsFields
-        """
         fields = source_layer.fields()
-        field_idx = fields.indexFromName(COLUMN_NAME)
-        if field_idx == -1:
+        if fields.indexFromName(COLUMN_NAME) == -1:
             fields.append(QgsField(COLUMN_NAME, QMetaType.Bool))
-
         return fields
 
     def processAlgorithm(  # noqa: N802
         self, parameters: dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> dict[str, str]:
-        """
-        Executes the algorithm logic for processing geospatial data to create polygons parallel
-        to a given line based on specified parameters.
-
-        This function processes input geospatial layers, extracts relevant parameters, and applies
-        algorithms to produce new geometries. The result is saved as a new output layer.
-
-        :param parameters: A dictionary containing input parameters required to run the algorithm.
-                           It includes input layers, boolean flags, and numerical values.
-        :param context: An instance of QgsProcessingContext representing the execution context of the algorithm.
-                        It provides details such as layer sources and environment settings.
-        :param feedback: An instance of QgsProcessingFeedback used for logging progress, status, and errors
-                         encountered during processing.
-        :return: A dictionary containing the identifier of the created output layer.
-        """
         polygon_layer = self.parameterAsSource(parameters, self.POLYGON_LAYER, context)
         output_fields = self._create_output_fields(polygon_layer)
         sink, dest_id = self.parameterAsSink(
