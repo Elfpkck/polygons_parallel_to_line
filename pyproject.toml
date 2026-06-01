@@ -16,7 +16,7 @@ license = "GPL-2.0-or-later"
 name = "polygons-parallel-to-line"
 readme = "README.md"
 requires-python = ">=3.9"
-version = "1.1"
+version = "0.0.0"
 
 [tool.coverage.report]
 exclude_also = [
@@ -34,6 +34,11 @@ follow_imports = "silent"
 ignore_missing_imports = false
 namespace_packages = true
 warn_return_any = true
+
+[tool.qgis-plugin-ci]
+github_organization_slug = "Elfpkck"
+plugin_path = "PolygonsParallelToLine"
+project_slug = "polygons_parallel_to_line"
 
 [tool.ruff]
 line-length = 120

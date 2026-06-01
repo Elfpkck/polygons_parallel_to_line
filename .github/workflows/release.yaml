@@ -1,0 +1,43 @@
+name: Release
+permissions:
+  contents: write
+on:
+  push:
+    tags:
+    - '[0-9]+.[0-9]+.[0-9]+'
+    - '[0-9]+.[0-9]+.[0-9]+-*'
+
+jobs:
+  tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6.0.2
+      with: {fetch-depth: 0}
+    - run: make build
+    - run: make run
+    - run: make install
+    - run: make test
+    - if: always()
+      run: make clean
+
+  publish:
+    name: Publish to plugins.qgis.org
+    needs: [tests]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6.0.2
+      with: {fetch-depth: 0}
+    - uses: actions/setup-python@v6
+      with: {python-version: '3.12'}
+    - run: pip install qgis-plugin-ci==2.10.0
+    - name: Release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        OSGEO_USERNAME: ${{ secrets.OSGEO_USERNAME }}
+        OSGEO_PASSWORD: ${{ secrets.OSGEO_PASSWORD }}
+      run: |
+        qgis-plugin-ci release "${GITHUB_REF_NAME}" \
+          --github-token   "${GITHUB_TOKEN}" \
+          --osgeo-username "${OSGEO_USERNAME}" \
+          --osgeo-password "${OSGEO_PASSWORD}"

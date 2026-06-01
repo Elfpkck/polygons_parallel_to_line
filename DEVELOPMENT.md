@@ -54,11 +54,21 @@ These instructions are specific to PyCharm.
     - Value: `<absolute/path/to/repo>` (the absolute path to your local clone of this repository)
 5. To reload the plugin, use the "Plugin Reloader" plugin.
 
-## Add a New Plugin Version to QGIS
+## Releasing a New Plugin Version
 
-1. Run:
+1. Move the entries under `## [Unreleased]` in `CHANGELOG.md` to a new `## [X.Y.Z] - YYYY-MM-DD` section. `qgis-plugin-ci` requires a 3-part `MAJOR.MINOR.PATCH` version — `## [1.2]` will be silently ignored and the published changelog will be empty.
+2. Commit and push to `main`.
+3. Tag and push (3-part versions only):
    ```shell
-   zip -r pptl.zip PolygonsParallelToLine/ -x "*.DS_Store" "__MACOSX" "*/__pycache__/*" "*.pyc" "*.pyo" "*~" "*.bak"
+   git tag X.Y.Z
+   git push origin X.Y.Z
    ```
-2. Open https://plugins.qgis.org/plugins/PolygonsParallelToLine/version/add/
-3. Upload `pptl.zip`
+4. The `Release` workflow (`.github/workflows/release.yaml`) runs the tests, then publishes to plugins.qgis.org and creates a GitHub Release with the `.zip` attached.
+
+Required GitHub Secrets (one-time setup, repo Settings → Secrets and variables → Actions):
+- `OSGEO_USERNAME` — your plugins.qgis.org account username
+- `OSGEO_PASSWORD` — your plugins.qgis.org account password
+
+(`GITHUB_TOKEN` is provided automatically by Actions.)
+
+For a staged/experimental release, use a 3-part pre-release tag suffix (e.g. `1.2.0-rc1`). The portal will list it as experimental. A 2-part form like `1.2-rc1` is not detected as a pre-release by `qgis-plugin-ci` and will be published as stable.
