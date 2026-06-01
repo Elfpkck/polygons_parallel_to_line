@@ -1,6 +1,6 @@
 [general]
 name=Polygons Parallel to Line
-qgisMinimumVersion=3.0
+qgisMinimumVersion=3.22
 description=This plugin rotates polygons parallel to lines
 version=1.1
 author=Andrii Liekariev
