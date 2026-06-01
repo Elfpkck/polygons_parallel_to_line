@@ -32,14 +32,21 @@ jobs:
       with: {python-version: '3.12'}
     - run: pip install qgis-plugin-ci==2.10.0
     - name: Create GitHub Release
+      id: create_release
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
+        if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+          echo "Release ${GITHUB_REF_NAME} already exists, skipping creation."
+          echo "created=false" >> "${GITHUB_OUTPUT}"
+          exit 0
+        fi
         if [[ "${GITHUB_REF_NAME}" == *-* ]]; then
           gh release create "${GITHUB_REF_NAME}" --title "${GITHUB_REF_NAME}" --generate-notes --prerelease
         else
           gh release create "${GITHUB_REF_NAME}" --title "${GITHUB_REF_NAME}" --generate-notes
         fi
+        echo "created=true" >> "${GITHUB_OUTPUT}"
     - name: Release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -50,3 +57,8 @@ jobs:
           --github-token   "${GITHUB_TOKEN}" \
           --osgeo-username "${OSGEO_USERNAME}" \
           --osgeo-password "${OSGEO_PASSWORD}"
+    - name: Delete orphan release on failure
+      if: failure() && steps.create_release.outputs.created == 'true'
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: gh release delete "${GITHUB_REF_NAME}" --yes
