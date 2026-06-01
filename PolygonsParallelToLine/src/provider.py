@@ -11,14 +11,14 @@ if TYPE_CHECKING:
 
 
 class Provider(QgsProcessingProvider):
-    def loadAlgorithms(self, *args, **kwargs) -> None:
+    def loadAlgorithms(self) -> None:
         self.addAlgorithm(Algorithm())
 
-    def id(self, *args, **kwargs) -> str:
+    def id(self) -> str:
         return "pptl"
 
-    def name(self, *args, **kwargs) -> str:
+    def name(self) -> str:
         return "Polygons parallel to lines"
 
     def icon(self) -> QIcon:
-        return QgsProcessingProvider.icon(self)
+        return super().icon()

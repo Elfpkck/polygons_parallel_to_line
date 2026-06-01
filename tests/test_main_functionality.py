@@ -177,36 +177,38 @@ def test_main_functionality(
     assert [x[const.COLUMN_NAME] for x in output_layer.getFeatures()] == _rotated
 
 
+def test_no_multi_skips_multipolygons_when_line_layer_empty(qgis_processing, add_features):
+    # Regression: with no_multi=True, multipolygons must be skipped without touching the
+    # (empty) line layer; previously the line lookup ran first and would raise.
+    line_layer = QgsVectorLayer("linestring", "temp_line", "memory")
+
+    poly_layer = QgsVectorLayer("polygon", "temp_poly", "memory")
+    add_features(
+        vector_layer=poly_layer,
+        wkt_geometries=(
+            "MultiPolygon (((0 0, 1 0, 1 1, 0 1, 0 0)))",
+            "MultiPolygon (((10 10, 11 10, 11 11, 10 11, 10 10)))",
+        ),
+    )
+
+    params = {
+        "LINE_LAYER": line_layer,
+        "POLYGON_LAYER": poly_layer,
+        "LONGEST": False,
+        "NO_MULTI": True,
+        "DISTANCE": 0.0,
+        "ANGLE": 89.9,
+        "OUTPUT": QgsProcessingOutputLayerDefinition("TEMPORARY_OUTPUT"),
+    }
+    context = QgsProcessingContext()
+    result = processing.run(algOrName=Algorithm(), parameters=params, context=context)
+    output_layer = context.getMapLayer(result[Algorithm.OUTPUT_LAYER])
+
+    assert [x[const.COLUMN_NAME] for x in output_layer.getFeatures()] == [False, False]
+
+
 @pytest.fixture(scope="module")
 def add_features():
-    """
-    Pytest fixture that returns a function to add geometric features to a vector layer.
-
-    This session-scoped fixture provides a reusable function for adding multiple
-    geometric features to a QgsVectorLayer from WKT (Well-Known Text) geometry strings.
-    Useful for setting up test data in QGIS-based tests.
-
-    Returns:
-        callable: A function that accepts a vector layer and WKT geometries tuple.
-
-    The returned function signature:
-        add_wkt_features_to_layer(vector_layer: QgsVectorLayer, wkt_geometries: tuple[str, ...]) -> None
-
-    Args (for the returned function):
-        vector_layer (QgsVectorLayer): The target vector layer to add features to.
-        wkt_geometries (tuple[str, ...]): Tuple of WKT geometry strings to be
-            converted to QgsGeometry objects and added as features.
-
-    Example:
-        ```python
-        def test_layer_features(add_features):
-            layer = QgsVectorLayer("Point", "test_layer", "memory")
-            geometries = ("POINT(0 0)", "POINT(1 1)", "POINT(2 2)")
-            add_features(layer, geometries)
-            assert layer.featureCount() == 3
-        ```
-    """
-
     def add_wkt_features_to_layer(vector_layer: QgsVectorLayer, wkt_geometries: tuple[str, ...]) -> None:
         data_provider: QgsVectorDataProvider = vector_layer.dataProvider()
         for wkt_geometry in wkt_geometries:
@@ -219,25 +221,6 @@ def add_features():
 
 @pytest.fixture(scope="module")
 def converter():
-    """
-    Pytest fixture that provides a WKT to polygon geometry converter function.
-
-    This session-scoped fixture returns a function that converts Well-Known Text (WKT)
-    strings into QGIS polygon geometry coordinate structures. The converter handles
-    both single polygons and multipolygons.
-
-    Returns:
-        A function that takes a WKT string and returns polygon coordinates as:
-        - For single polygon: list[list[QgsPointXY]] - rings of coordinates
-        - For multipolygon: list[list[list[QgsPointXY]]] - polygons containing rings
-
-    Example:
-        def test_polygon_conversion(converter):
-            result = converter("POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))")
-            assert len(result) == 1  # One ring
-            assert len(result[0]) == 5  # Five points in the ring
-    """
-
     def wkt_to_polygon_geometry(wkt: str) -> list[list[QgsPointXY]] | list[list[list[QgsPointXY]]]:
         geom: QgsGeometry = QgsGeometry.fromWkt(wkt)
         if geom.isMultipart():
