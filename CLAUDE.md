@@ -6,7 +6,7 @@ QGIS Processing plugin `PolygonsParallelToLine` (id `pptl`) — rotates polygons
 
 ## Environment
 
-Tests require QGIS Python bindings, so everything runs inside the `qgis_pptl` Docker container (image `qgis/qgis:3.44.7`, repo mounted at `/pptl`). The host `.venv` is *shadowed* inside the container by an anonymous volume — host installs are not visible to the container.
+Tests require QGIS Python bindings, so everything runs inside the `qgis_pptl` Docker container (image `qgis/qgis:4.0.0`, repo mounted at `/pptl`). The host `.venv` is *shadowed* inside the container by an anonymous volume — host installs are not visible to the container.
 
 See `Makefile` for build/run/install/test targets (all `make` invocations assume the container is running).
 
