@@ -1,4 +1,4 @@
-QGIS_VERSION ?= 3.44.7
+QGIS_VERSION ?= 4.0.0
 IMAGE := qgis-for-pptl:$(QGIS_VERSION)
 CONTAINER := qgis_pptl
 
@@ -13,7 +13,7 @@ run: build
 	docker run -d --rm --name $(CONTAINER) \
 		-v "$(CURDIR):/pptl" \
 		-v /pptl/.venv \
-		-e PYTHONPATH=/pptl \
+		-e PYTHONPATH=/pptl:/usr/share/qgis/python \
 		$(IMAGE)
 
 install:
