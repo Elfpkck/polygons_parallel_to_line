@@ -2,3 +2,5 @@
 /.coverage
 /coverage.xml
 /junit.xml
+.DS_Store
+__pycache__/
