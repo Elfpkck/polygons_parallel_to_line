@@ -11,6 +11,8 @@
     make test
     ```
 
+Performance smoke tests are skipped by default. Run them with `make test-perf` to catch order-of-magnitude regressions in the per-feature pipeline.
+
 ## Remote Debugging
 
 These instructions are specific to PyCharm.
