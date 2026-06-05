@@ -35,6 +35,10 @@ ignore_missing_imports = false
 namespace_packages = true
 warn_return_any = true
 
+[tool.pytest.ini_options]
+addopts = "-m 'not perf'"
+markers = ["perf: performance smoke tests (skipped by default; run with `-m perf`)"]
+
 [tool.qgis-plugin-ci]
 github_organization_slug = "Elfpkck"
 plugin_path = "PolygonsParallelToLine"

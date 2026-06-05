@@ -47,6 +47,8 @@ Invariants:
 
 `tests/test_main_functionality.py` is the integration suite — builds in-memory `QgsVectorLayer`s from WKT, runs the pipeline via `processing.run(algOrName=Algorithm(), ...)`, compares output WKT. Extend the existing `@pytest.mark.parametrize` table for new cases rather than adding files. Other `tests/test_*.py` files are module unit tests and don't need a full processing run.
 
+`tests/test_performance.py` is a perf smoke test marked `perf` — skipped by default via `addopts = "-m 'not perf'"` in `pyproject.toml`, run via `make test-perf`. Catches order-of-magnitude regressions in the per-feature pipeline.
+
 ## Packaging & Remote Debugging
 
 See `DEVELOPMENT.md` for the plugin-portal zip command (must zip *only* `PolygonsParallelToLine/`, not the repo root) and the PyCharm `pydevd_pycharm.settrace` setup (port `53100`, commented stubs in `src/pptl.py` and `tests/test_main_functionality.py`).

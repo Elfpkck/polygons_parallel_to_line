@@ -2,7 +2,7 @@ QGIS_VERSION ?= 4.0.0
 IMAGE := qgis-for-pptl:$(QGIS_VERSION)
 CONTAINER := qgis_pptl
 
-.PHONY: build run install install-dev test test-coverage stop clean
+.PHONY: build run install install-dev test test-coverage test-perf stop clean
 
 build:
 	DOCKER_SCAN_SUGGEST=false docker build -t $(IMAGE) -f Dockerfile .
@@ -33,6 +33,9 @@ test-coverage:
 		--cov-report=term-missing:skip-covered \
 		--cov-report=xml:/pptl/coverage.xml \
 		--junitxml=/pptl/junit.xml -o junit_family=legacy"
+
+test-perf:
+	docker exec $(CONTAINER) sh -c "cd /pptl && uv run --no-dev pytest /pptl/tests -m perf --qgis_disable_gui"
 
 stop:
 	-docker stop $(CONTAINER)
