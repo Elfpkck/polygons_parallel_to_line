@@ -9,4 +9,4 @@ if TYPE_CHECKING:
 def classFactory(iface) -> Plugin:
     from .src.plugin import Plugin
 
-    return Plugin()
+    return Plugin(iface)
