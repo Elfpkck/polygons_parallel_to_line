@@ -1,6 +1,7 @@
 [general]
 name=Polygons Parallel to Line
 qgisMinimumVersion=3.22
+qgisMaximumVersion=4.99
 description=Rotates polygons and lines to be parallel to a reference line, in batch (Processing) or interactively from the map canvas
 version=0.0.0
 author=Andrii Liekariev

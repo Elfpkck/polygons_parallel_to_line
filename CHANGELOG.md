@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
+- Mark the plugin as QGIS 4 compatible (`qgisMaximumVersion=4.99`) and fully scope PyQt6-required Qt enums in the map tool and settings dialog so they work on QGIS 4 / Qt 6
 
 ## [2.0.0] - 2026-06-06
 - Add an interactive map tool: pick a reference line on the canvas, then click — or drag a rectangle — to rotate individual line/polygon features (or every feature in the rectangle across editable visible layers) parallel to it

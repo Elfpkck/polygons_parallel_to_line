@@ -7,7 +7,7 @@ from qgis.core import QgsProcessingProvider
 from .algorithm import Algorithm
 
 if TYPE_CHECKING:
-    from PyQt5.QtGui import QIcon
+    from qgis.PyQt.QtGui import QIcon  # type: ignore[import-not-found]
 
 
 class Provider(QgsProcessingProvider):

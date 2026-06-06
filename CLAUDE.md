@@ -8,7 +8,7 @@ QGIS Processing plugin `PolygonsParallelToLine` (id `pptl`) — rotates polygons
 
 Tests require QGIS Python bindings, so everything runs inside the `qgis_pptl` Docker container (image `qgis/qgis:4.0.0`, repo mounted at `/pptl`). The host `.venv` is *shadowed* inside the container by an anonymous volume — host installs are not visible to the container.
 
-See `Makefile` for build/run/install/test targets (all `make` invocations assume the container is running).
+See `Makefile` for build/run/install/test targets (all `make` invocations assume the container is running). Use `make test-all` as the default for running the suite — it covers both the unit tests and the `perf`-marked smoke test in one invocation. Reach for the narrower `make test` / `make test-perf` only when intentionally scoping to one slice.
 
 Single test inside the container:
 
