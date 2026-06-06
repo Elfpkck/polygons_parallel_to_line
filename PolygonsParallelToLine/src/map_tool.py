@@ -79,7 +79,7 @@ class ParallelToLineMapTool(QgsMapToolIdentifyFeature):
 
     def activate(self) -> None:
         super().activate()
-        self.setCursor(Qt.CrossCursor)
+        self.setCursor(Qt.CursorShape.CrossCursor)
         self._show_message("Click or drag-rectangle on a line to set the reference.", Qgis.Info)
 
     def deactivate(self) -> None:
@@ -88,7 +88,7 @@ class ParallelToLineMapTool(QgsMapToolIdentifyFeature):
         super().deactivate()
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
-        if event.key() == Qt.Key_Escape:
+        if event.key() == Qt.Key.Key_Escape:
             if self._is_dragging:
                 self._cancel_drag()
                 return
@@ -101,7 +101,7 @@ class ParallelToLineMapTool(QgsMapToolIdentifyFeature):
         super().keyPressEvent(event)
 
     def canvasPressEvent(self, event: QgsMapMouseEvent) -> None:
-        if event.button() != Qt.LeftButton:
+        if event.button() != Qt.MouseButton.LeftButton:
             return
         self._drag_start_pos = event.pos()
         self._drag_start_point = self.toMapCoordinates(event.pos())
@@ -118,13 +118,13 @@ class ParallelToLineMapTool(QgsMapToolIdentifyFeature):
         self._update_selection_band(self.toMapCoordinates(event.pos()))
 
     def canvasReleaseEvent(self, event: QgsMapMouseEvent) -> None:
-        if event.button() == Qt.RightButton:
+        if event.button() == Qt.MouseButton.RightButton:
             self._cancel_drag()
             self._clear_reference()
             self._show_message("Reference cleared. Click a line feature to set a new reference.", Qgis.Info)
             return
 
-        if event.button() != Qt.LeftButton:
+        if event.button() != Qt.MouseButton.LeftButton:
             return
 
         was_dragging = self._is_dragging

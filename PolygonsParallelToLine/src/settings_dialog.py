@@ -39,7 +39,7 @@ class MapToolSettingsDialog(QDialog):
         picking_layout.addWidget(self._pick_target_checkbox)
         picking_group.setLayout(picking_layout)
 
-        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         button_box.accepted.connect(self._apply)
         button_box.rejected.connect(self.reject)
 
