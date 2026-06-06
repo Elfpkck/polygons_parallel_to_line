@@ -28,6 +28,8 @@ class Plugin:
         self.toolbar: QToolBar | None = None
         self.parallelize_action: QAction | None = None
         self.settings_action: QAction | None = None
+        self.pick_reference_action: QAction | None = None
+        self.pick_target_action: QAction | None = None
         self.map_tool: ParallelToLineMapTool | None = None
 
     def initProcessing(self) -> None:
@@ -56,6 +58,23 @@ class Plugin:
         self.toolbar.addAction(self.parallelize_action)
         self.iface.addPluginToVectorMenu(_MENU_NAME, self.parallelize_action)
 
+        vertex_icon = QgsApplication.getThemeIcon("/mActionVertexTool.svg")
+        self.pick_reference_action = QAction(vertex_icon, "Pick reference segment", self.iface.mainWindow())
+        self.pick_reference_action.setCheckable(True)
+        self.pick_reference_action.setChecked(self.settings.pick_reference_segment)
+        self.pick_reference_action.toggled.connect(self._on_pick_reference_toggled)
+        self.toolbar.addAction(self.pick_reference_action)
+        self.iface.addPluginToVectorMenu(_MENU_NAME, self.pick_reference_action)
+
+        self.pick_target_action = QAction(vertex_icon, "Pick target segment", self.iface.mainWindow())
+        self.pick_target_action.setCheckable(True)
+        self.pick_target_action.setChecked(self.settings.pick_target_segment)
+        self.pick_target_action.toggled.connect(self._on_pick_target_toggled)
+        self.toolbar.addAction(self.pick_target_action)
+        self.iface.addPluginToVectorMenu(_MENU_NAME, self.pick_target_action)
+
+        self.settings.changed.connect(self._sync_actions_from_settings)
+
         self.settings_action = QAction(
             QgsApplication.getThemeIcon("/mActionOptions.svg"),
             "Settings…",
@@ -67,6 +86,27 @@ class Plugin:
 
         self.map_tool = ParallelToLineMapTool(self.iface, self.settings)
         self.map_tool.deactivated.connect(self._on_map_tool_deactivated)
+
+    def _on_pick_reference_toggled(self, checked: bool) -> None:
+        if self.settings is not None:
+            self.settings.pick_reference_segment = checked
+
+    def _on_pick_target_toggled(self, checked: bool) -> None:
+        if self.settings is not None:
+            self.settings.pick_target_segment = checked
+
+    def _sync_actions_from_settings(self) -> None:
+        if self.settings is None:
+            return
+        for action, value in (
+            (self.pick_reference_action, self.settings.pick_reference_segment),
+            (self.pick_target_action, self.settings.pick_target_segment),
+        ):
+            if action is None or action.isChecked() == value:
+                continue
+            action.blockSignals(True)  # noqa: FBT003
+            action.setChecked(value)
+            action.blockSignals(False)  # noqa: FBT003
 
     def _on_action_toggled(self, checked: bool) -> None:
         if self.iface is None or self.map_tool is None:
@@ -93,6 +133,10 @@ class Plugin:
         if self.iface is not None:
             if self.parallelize_action is not None:
                 self.iface.removePluginVectorMenu(_MENU_NAME, self.parallelize_action)
+            if self.pick_reference_action is not None:
+                self.iface.removePluginVectorMenu(_MENU_NAME, self.pick_reference_action)
+            if self.pick_target_action is not None:
+                self.iface.removePluginVectorMenu(_MENU_NAME, self.pick_target_action)
             if self.settings_action is not None:
                 self.iface.removePluginVectorMenu(_MENU_NAME, self.settings_action)
             if self.map_tool is not None:
@@ -103,6 +147,8 @@ class Plugin:
             self.toolbar.deleteLater()
         self.parallelize_action = None
         self.settings_action = None
+        self.pick_reference_action = None
+        self.pick_target_action = None
         self.toolbar = None
         self.map_tool = None
         self.settings = None

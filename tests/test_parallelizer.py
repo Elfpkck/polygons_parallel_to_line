@@ -3,9 +3,10 @@ from __future__ import annotations
 import math
 
 import pytest
-from qgis.core import QgsGeometry, QgsPointXY
+from qgis.core import QgsGeometry, QgsPoint, QgsPointXY
 
 from PolygonsParallelToLine.src.azimuth import calc_delta_azimuth
+from PolygonsParallelToLine.src.line import Segment
 from PolygonsParallelToLine.src.parallelizer import compute_parallel_geometry
 
 
@@ -83,3 +84,40 @@ def test_compute_parallel_geometry(qgis_app, reference, target, target_kind, by_
     if target_kind == "line":
         residual = _delta_to_reference(result.asWkt(), reference, by_longest=by_longest)
         assert math.isclose(residual, 0.0, abs_tol=1e-6)
+
+
+def _segment_from_xy(x1: float, y1: float, x2: float, y2: float) -> Segment:
+    return Segment(start=QgsPoint(x1, y1), end=QgsPoint(x2, y2))
+
+
+def test_line_target_with_explicit_aligned_segment_returns_none(qgis_app):
+    ref = QgsGeometry.fromWkt(REFERENCE_HORIZONTAL)
+    target = QgsGeometry.fromWkt("LineString (40 50, 60 60, 80 55)")
+    horizontal = _segment_from_xy(0, 50, 10, 50)
+
+    result = compute_parallel_geometry(ref, target, "line", by_longest=False, target_segment=horizontal)
+
+    assert result is None
+
+
+def test_line_target_with_explicit_perpendicular_segment_rotates(qgis_app):
+    ref = QgsGeometry.fromWkt(REFERENCE_HORIZONTAL)
+    target = QgsGeometry.fromWkt("LineString (40 50, 60 60)")
+    vertical = _segment_from_xy(0, 0, 0, 10)
+
+    result = compute_parallel_geometry(ref, target, "line", by_longest=False, target_segment=vertical)
+
+    assert result is not None
+    # Centroid preserved by rotation around centroid.
+    assert result.centroid().asPoint().distance(target.centroid().asPoint()) < 1e-6
+
+
+def test_polygon_target_with_explicit_segment_rotates_around_centroid(qgis_app):
+    ref = QgsGeometry.fromWkt(REFERENCE_HORIZONTAL)
+    target = QgsGeometry.fromWkt("Polygon ((10 50, 30 70, 50 55, 30 35, 10 50))")
+    diagonal = _segment_from_xy(0, 0, 10, 10)
+
+    result = compute_parallel_geometry(ref, target, "polygon", by_longest=False, target_segment=diagonal)
+
+    assert result is not None
+    assert result.centroid().asPoint().distance(target.centroid().asPoint()) < 1e-6

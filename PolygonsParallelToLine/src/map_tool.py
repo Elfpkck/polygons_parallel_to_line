@@ -5,8 +5,10 @@ from typing import TYPE_CHECKING, Literal
 from qgis.core import (
     Qgis,
     QgsCoordinateTransform,
+    QgsFeature,
     QgsFeatureRequest,
     QgsGeometry,
+    QgsPointXY,
     QgsProject,
     QgsRectangle,
     QgsVectorLayer,
@@ -16,14 +18,43 @@ from qgis.gui import QgsMapToolIdentify, QgsMapToolIdentifyFeature, QgsRubberBan
 from qgis.PyQt.QtCore import QPoint, Qt  # type: ignore[import-not-found]
 from qgis.PyQt.QtGui import QColor  # type: ignore[import-not-found]
 
+from .line import Line, Segment
 from .parallelizer import compute_parallel_geometry
 
 if TYPE_CHECKING:
-    from qgis.core import QgsCoordinateReferenceSystem, QgsFeature, QgsPointXY
+    from qgis.core import QgsCoordinateReferenceSystem
     from qgis.gui import QgisInterface, QgsMapMouseEvent
     from qgis.PyQt.QtGui import QKeyEvent  # type: ignore[import-not-found]
 
     from .settings import MapToolSettings
+
+
+def _closest_segment_of(geom: QgsGeometry, point_xy: QgsPointXY) -> Segment:
+    feature = QgsFeature()
+    feature.setGeometry(geom)
+    return Line(feature).get_closest_segment(point_xy)
+
+
+def _pick_segment_in_rect(geom: QgsGeometry, rect_geom: QgsGeometry, rect_center: QgsPointXY) -> Segment:
+    best: Segment | None = None
+    best_length = 0.0
+    parts = geom.asGeometryCollection() or [geom]
+    for part in parts:
+        verts = list(part.vertices())
+        for i in range(len(verts) - 1):
+            seg = Segment(start=verts[i], end=verts[i + 1])
+            seg_geom = QgsGeometry.fromPolyline([seg.start, seg.end])
+            clipped = seg_geom.intersection(rect_geom)
+            if clipped.isNull() or clipped.isEmpty():
+                continue
+            length = clipped.length()
+            if length > best_length or best is None:
+                best_length = length
+                best = seg
+    if best is not None:
+        return best
+    return _closest_segment_of(geom, rect_center)
+
 
 Kind = Literal["line", "polygon"]
 
@@ -121,6 +152,8 @@ class ParallelToLineMapTool(QgsMapToolIdentifyFeature):
         if not results:
             return
 
+        map_point = self.toMapCoordinates(event.pos())
+
         for result in results:
             layer = result.mLayer
             if not isinstance(layer, QgsVectorLayer):
@@ -131,7 +164,12 @@ class ParallelToLineMapTool(QgsMapToolIdentifyFeature):
             if self.reference_geom is None:
                 if geom_type != QgsWkbTypes.LineGeometry:
                     continue
-                self._set_reference(feature.geometry(), layer.crs())
+                ref_geom = feature.geometry()
+                if self.settings.pick_reference_segment:
+                    click_layer = self._point_in_layer_crs(map_point, layer)
+                    segment = _closest_segment_of(ref_geom, click_layer)
+                    ref_geom = QgsGeometry.fromPolylineXY([QgsPointXY(segment.start), QgsPointXY(segment.end)])
+                self._set_reference(ref_geom, layer.crs())
                 self._show_message(
                     "Reference set. Click or drag-rectangle to rotate line/polygon features.",
                     Qgis.Success,
@@ -140,10 +178,16 @@ class ParallelToLineMapTool(QgsMapToolIdentifyFeature):
 
             if geom_type not in (QgsWkbTypes.LineGeometry, QgsWkbTypes.PolygonGeometry):
                 continue
-            self._rotate_target(layer, feature, geom_type)
+            self._rotate_target(layer, feature, geom_type, map_point)
             return
 
-    def _rotate_target(self, layer: QgsVectorLayer, feature: QgsFeature, geom_type: int) -> None:
+    def _rotate_target(
+        self,
+        layer: QgsVectorLayer,
+        feature: QgsFeature,
+        geom_type: int,
+        map_point: QgsPointXY,
+    ) -> None:
         if not layer.isEditable():
             self._show_message(
                 f"Layer '{layer.name()}' is not in edit mode; toggle editing to rotate features.",
@@ -152,11 +196,16 @@ class ParallelToLineMapTool(QgsMapToolIdentifyFeature):
             return
 
         kind: Kind = "line" if geom_type == QgsWkbTypes.LineGeometry else "polygon"
+        target_segment: Segment | None = None
+        if self.settings.pick_target_segment:
+            click_layer = self._point_in_layer_crs(map_point, layer)
+            target_segment = _closest_segment_of(feature.geometry(), click_layer)
         rotated = compute_parallel_geometry(
             self._reference_for_layer(layer),
             feature.geometry(),
             kind,
             by_longest=self.settings.by_longest,
+            target_segment=target_segment,
         )
         if rotated is None:
             self._show_message("Feature already parallel; no rotation applied.", Qgis.Info)
@@ -197,7 +246,13 @@ class ParallelToLineMapTool(QgsMapToolIdentifyFeature):
             return
 
         layer, feature = found[0]
-        self._set_reference(feature.geometry(), layer.crs())
+        ref_geom = feature.geometry()
+        if self.settings.pick_reference_segment:
+            layer_rect = self._transform_rect_to_layer(map_rect, layer)
+            rect_geom = QgsGeometry.fromRect(layer_rect)
+            segment = _pick_segment_in_rect(ref_geom, rect_geom, layer_rect.center())
+            ref_geom = QgsGeometry.fromPolylineXY([QgsPointXY(segment.start), QgsPointXY(segment.end)])
+        self._set_reference(ref_geom, layer.crs())
         suffix = f" ({len(found)} lines in selection; using topmost)" if len(found) > 1 else ""
         self._show_message(
             f"Reference set{suffix}. Click or drag-rectangle to rotate line/polygon features.",
@@ -231,22 +286,40 @@ class ParallelToLineMapTool(QgsMapToolIdentifyFeature):
                 continue
 
             kind: Kind = "line" if geom_type == QgsWkbTypes.LineGeometry else "polygon"
-            layer_rotated = self._rotate_layer_features(canvas_layer, features, kind)
+            layer_rotated = self._rotate_layer_features(canvas_layer, features, kind, layer_rect=layer_rect)
             rotated_count += layer_rotated
 
         self._report_bulk_result(rotated_count, non_editable)
 
-    def _rotate_layer_features(self, layer: QgsVectorLayer, features: list[QgsFeature], kind: Kind) -> int:
+    def _rotate_layer_features(
+        self,
+        layer: QgsVectorLayer,
+        features: list[QgsFeature],
+        kind: Kind,
+        *,
+        layer_rect: QgsRectangle | None = None,
+    ) -> int:
         reference = self._reference_for_layer(layer)
+        pick_target = self.settings.pick_target_segment and layer_rect is not None
+        rect_geom: QgsGeometry | None = None
+        rect_center: QgsPointXY | None = None
+        if pick_target and layer_rect is not None:
+            rect_geom = QgsGeometry.fromRect(layer_rect)
+            rect_center = layer_rect.center()
+
         layer.beginEditCommand("Parallel to Line (bulk)")
         layer_rotated = 0
         try:
             for feature in features:
+                target_segment: Segment | None = None
+                if pick_target and rect_geom is not None and rect_center is not None:
+                    target_segment = _pick_segment_in_rect(feature.geometry(), rect_geom, rect_center)
                 rotated = compute_parallel_geometry(
                     reference,
                     feature.geometry(),
                     kind,
                     by_longest=self.settings.by_longest,
+                    target_segment=target_segment,
                 )
                 if rotated is None:
                     continue
@@ -280,6 +353,14 @@ class ParallelToLineMapTool(QgsMapToolIdentifyFeature):
             )
         else:
             self._show_message("No features to rotate in the selection.", Qgis.Info)
+
+    def _point_in_layer_crs(self, map_point: QgsPointXY, layer: QgsVectorLayer) -> QgsPointXY:
+        map_crs = self.iface.mapCanvas().mapSettings().destinationCrs()
+        layer_crs = layer.crs()
+        if not (map_crs.isValid() and layer_crs.isValid()) or map_crs == layer_crs:
+            return map_point
+        transform = QgsCoordinateTransform(map_crs, layer_crs, QgsProject.instance())
+        return transform.transform(map_point)
 
     def _transform_rect_to_layer(self, map_rect: QgsRectangle, layer: QgsVectorLayer) -> QgsRectangle:
         map_crs = self.iface.mapCanvas().mapSettings().destinationCrs()

@@ -49,3 +49,35 @@ def test_setting_same_value_emits_no_signal():
 
     settings.by_longest = True
     assert len(emissions) == 1
+
+
+@pytest.mark.parametrize("attr", ["pick_reference_segment", "pick_target_segment"])
+def test_default_segment_picking_flags_are_false(attr):
+    settings = MapToolSettings()
+    assert getattr(settings, attr) is False
+
+
+@pytest.mark.parametrize("attr", ["pick_reference_segment", "pick_target_segment"])
+def test_segment_picking_flags_persist_across_instances(attr):
+    settings = MapToolSettings()
+    setattr(settings, attr, True)
+    QSettings().sync()
+
+    reloaded = MapToolSettings()
+    assert getattr(reloaded, attr) is True
+
+
+@pytest.mark.parametrize("attr", ["pick_reference_segment", "pick_target_segment"])
+def test_segment_picking_setter_is_idempotent(attr):
+    settings = MapToolSettings()
+    emissions: list[None] = []
+    settings.changed.connect(lambda: emissions.append(None))
+
+    setattr(settings, attr, False)
+    assert emissions == []
+
+    setattr(settings, attr, True)
+    assert len(emissions) == 1
+
+    setattr(settings, attr, True)
+    assert len(emissions) == 1

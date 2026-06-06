@@ -25,9 +25,19 @@ class MapToolSettingsDialog(QDialog):
         rotation_group = QGroupBox("Rotation")
         self._by_longest_checkbox = QCheckBox("Rotate by longest segment")
         self._by_longest_checkbox.setChecked(settings.by_longest)
-        group_layout = QVBoxLayout()
-        group_layout.addWidget(self._by_longest_checkbox)
-        rotation_group.setLayout(group_layout)
+        rotation_layout = QVBoxLayout()
+        rotation_layout.addWidget(self._by_longest_checkbox)
+        rotation_group.setLayout(rotation_layout)
+
+        picking_group = QGroupBox("Segment picking")
+        self._pick_reference_checkbox = QCheckBox("Click a single segment of the reference line")
+        self._pick_reference_checkbox.setChecked(settings.pick_reference_segment)
+        self._pick_target_checkbox = QCheckBox("Click a single segment of the target feature")
+        self._pick_target_checkbox.setChecked(settings.pick_target_segment)
+        picking_layout = QVBoxLayout()
+        picking_layout.addWidget(self._pick_reference_checkbox)
+        picking_layout.addWidget(self._pick_target_checkbox)
+        picking_group.setLayout(picking_layout)
 
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         button_box.accepted.connect(self._apply)
@@ -35,9 +45,12 @@ class MapToolSettingsDialog(QDialog):
 
         layout = QVBoxLayout()
         layout.addWidget(rotation_group)
+        layout.addWidget(picking_group)
         layout.addWidget(button_box)
         self.setLayout(layout)
 
     def _apply(self) -> None:
         self._settings.by_longest = self._by_longest_checkbox.isChecked()
+        self._settings.pick_reference_segment = self._pick_reference_checkbox.isChecked()
+        self._settings.pick_target_segment = self._pick_target_checkbox.isChecked()
         self.accept()

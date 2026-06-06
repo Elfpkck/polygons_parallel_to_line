@@ -22,10 +22,11 @@ def compute_parallel_geometry(
     target_kind: Literal["line", "polygon"],
     *,
     by_longest: bool,
+    target_segment: Segment | None = None,
 ) -> QgsGeometry | None:
     reference_line = Line(_as_feature(reference_geom))
 
-    if target_kind == "polygon":
+    if target_kind == "polygon" and target_segment is None:
         target_feature = _as_feature(target_geom)
         poly = Polygon(target_feature)
         PolygonRotator(
@@ -38,8 +39,12 @@ def compute_parallel_geometry(
 
     centroid_xy = target_geom.centroid().asPoint()
     ref_segment = reference_line.get_closest_segment(centroid_xy)
-    target_segment = _pick_target_segment(target_geom, ref_segment, by_longest=by_longest)
-    delta = calc_delta_azimuth(ref_segment.azimuth, target_segment.azimuth)
+    chosen_target_segment = (
+        target_segment
+        if target_segment is not None
+        else _pick_target_segment(target_geom, ref_segment, by_longest=by_longest)
+    )
+    delta = calc_delta_azimuth(ref_segment.azimuth, chosen_target_segment.azimuth)
 
     if math.isclose(delta, 0.0, abs_tol=ABSOLUTE_TOLERANCE):
         return None
