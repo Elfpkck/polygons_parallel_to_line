@@ -2,7 +2,25 @@ QGIS_VERSION ?= 4.0.0
 IMAGE := qgis-for-pptl:$(QGIS_VERSION)
 CONTAINER := qgis_pptl
 
-.PHONY: build run install install-dev test test-coverage test-perf test-all stop clean
+.PHONY: build run install install-dev test test-coverage test-perf test-all stop clean tag
+
+define FINALIZE_CHANGELOG
+import os, pathlib, datetime, sys
+v = os.environ['VERSION']
+p = pathlib.Path('CHANGELOG.md')
+lines = p.read_text().splitlines()
+header = '## [Unreleased]'
+try:
+    i = lines.index(header)
+except ValueError:
+    sys.exit('No [Unreleased] section in CHANGELOG.md')
+j = next((k for k in range(i + 1, len(lines)) if lines[k].startswith('## [')), len(lines))
+if not [l for l in lines[i + 1:j] if l.strip()]:
+    sys.exit('[Unreleased] has no entries; add some before tagging')
+lines[i:i + 1] = [header, '', f'## [{v}] - {datetime.date.today().isoformat()}']
+p.write_text('\n'.join(lines) + '\n')
+endef
+export FINALIZE_CHANGELOG
 
 build:
 	DOCKER_SCAN_SUGGEST=false docker build -t $(IMAGE) -f Dockerfile .
@@ -45,3 +63,19 @@ stop:
 
 clean: stop
 	-docker rm $(CONTAINER)
+
+tag:
+	@test -n "$(VERSION)" || { echo "Usage: make tag VERSION=X.Y.Z" >&2; exit 2; }
+	@echo "$(VERSION)" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-.+)?$$' \
+		|| { echo "VERSION must be N.N.N or N.N.N-suffix" >&2; exit 2; }
+	@branch=$$(git rev-parse --abbrev-ref HEAD); test "$$branch" = "main" \
+		|| { echo "Must be on main; currently on $$branch" >&2; exit 2; }
+	@git diff --quiet && git diff --cached --quiet \
+		|| { echo "Working tree not clean; commit or stash first" >&2; exit 2; }
+	@! git rev-parse --verify --quiet "refs/tags/$(VERSION)" >/dev/null \
+		|| { echo "Tag $(VERSION) already exists" >&2; exit 2; }
+	@VERSION="$(VERSION)" python3 -c "$$FINALIZE_CHANGELOG"
+	git add CHANGELOG.md
+	git commit -m "Update CHANGELOG for version $(VERSION) release"
+	git tag "$(VERSION)"
+	git push --atomic origin HEAD "$(VERSION)"
