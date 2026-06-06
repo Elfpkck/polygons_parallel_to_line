@@ -157,7 +157,7 @@ def test_main_functionality(
     add_features(vector_layer=poly_layer, wkt_geometries=polys)
 
     params = {
-        "LINE_LAYER": line_layer,
+        "REFERENCE_LAYER": line_layer,
         "POLYGON_LAYER": poly_layer,
         "LONGEST": longest,
         "NO_MULTI": no_multi,
@@ -177,9 +177,9 @@ def test_main_functionality(
     assert [x[const.COLUMN_NAME] for x in output_layer.getFeatures()] == _rotated
 
 
-def test_no_multi_skips_multipolygons_when_line_layer_empty(qgis_processing, add_features):
+def test_no_multi_skips_multipolygons_when_reference_layer_empty(qgis_processing, add_features):
     # Regression: with no_multi=True, multipolygons must be skipped without touching the
-    # (empty) line layer; previously the line lookup ran first and would raise.
+    # (empty) reference layer; previously the reference lookup ran first and would raise.
     line_layer = QgsVectorLayer("linestring", "temp_line", "memory")
 
     poly_layer = QgsVectorLayer("polygon", "temp_poly", "memory")
@@ -192,7 +192,7 @@ def test_no_multi_skips_multipolygons_when_line_layer_empty(qgis_processing, add
     )
 
     params = {
-        "LINE_LAYER": line_layer,
+        "REFERENCE_LAYER": line_layer,
         "POLYGON_LAYER": poly_layer,
         "LONGEST": False,
         "NO_MULTI": True,
@@ -205,6 +205,46 @@ def test_no_multi_skips_multipolygons_when_line_layer_empty(qgis_processing, add
     output_layer = context.getMapLayer(result[Algorithm.OUTPUT_LAYER])
 
     assert [x[const.COLUMN_NAME] for x in output_layer.getFeatures()] == [False, False]
+
+
+def test_polygon_reference_matches_equivalent_line_reference(qgis_processing, add_features):
+    # A polygon reference whose exterior ring matches a line reference's coordinate
+    # sequence should produce the same rotated outputs as the line reference.
+    ring_coords = "0 0, 100 5, 200 -3, 300 4"
+    line_wkt = f"LineString ({ring_coords}, 0 0)"
+    poly_wkt = f"Polygon (({ring_coords}, 0 0))"
+    target_polygons = (
+        "Polygon ((50 50, 60 50, 60 60, 50 60, 50 50))",
+        "Polygon ((150 80, 170 82, 168 100, 148 98, 150 80))",
+        "Polygon ((250 70, 270 71, 269 90, 249 89, 250 70))",
+    )
+
+    def _run(reference_wkt: str) -> list[str]:
+        ref_layer = QgsVectorLayer(
+            "linestring" if reference_wkt.startswith("LineString") else "polygon",
+            "ref",
+            "memory",
+        )
+        add_features(vector_layer=ref_layer, wkt_geometries=(reference_wkt,))
+        poly_layer = QgsVectorLayer("polygon", "tgt", "memory")
+        add_features(vector_layer=poly_layer, wkt_geometries=target_polygons)
+        params = {
+            "REFERENCE_LAYER": ref_layer,
+            "POLYGON_LAYER": poly_layer,
+            "LONGEST": False,
+            "NO_MULTI": False,
+            "DISTANCE": 0.0,
+            "ANGLE": 89.9,
+            "OUTPUT": QgsProcessingOutputLayerDefinition("TEMPORARY_OUTPUT"),
+        }
+        context = QgsProcessingContext()
+        result = processing.run(algOrName=Algorithm(), parameters=params, context=context)
+        out = context.getMapLayer(result[Algorithm.OUTPUT_LAYER])
+        return [f.geometry().asWkt() for f in out.getFeatures()]
+
+    line_outputs = _run(line_wkt)
+    polygon_outputs = _run(poly_wkt)
+    assert line_outputs == polygon_outputs
 
 
 @pytest.fixture(scope="module")

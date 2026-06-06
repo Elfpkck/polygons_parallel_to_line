@@ -5,7 +5,7 @@
 
 # Polygons Parallel to Line - QGIS Python Plugin
 
-A QGIS plugin that rotates polygons (and lines) to be parallel to a reference line. Two entry points: a batch Processing algorithm that operates on whole layers, and an interactive map tool that lets you pick a reference line on the canvas and then click — or drag-rectangle — individual line/polygon features to rotate them in place.
+A QGIS plugin that rotates polygons (and lines) to be parallel to a reference feature (line or polygon — polygon boundary rings are treated as polylines). Two entry points: a batch Processing algorithm that operates on whole layers, and an interactive map tool that lets you pick a reference feature on the canvas and then click — or drag-rectangle — individual line/polygon features to rotate them in place.
 
 [Polygons Parallel to Line Plugin on QGIS Plugins Web Portal](https://plugins.qgis.org/plugins/PolygonsParallelToLine/)
 
@@ -42,8 +42,8 @@ A QGIS plugin that rotates polygons (and lines) to be parallel to a reference li
 ## Quick Start
 
 ### Batch (Processing algorithm)
-1. **Access the Plugin**: Go to **Processing** → **Toolbox** → **Polygons parallel to lines**
-2. **Select Input Layers**: Choose your polygon and line layers
+1. **Access the Plugin**: Go to **Processing** → **Toolbox** → **Polygons parallel to a reference layer**
+2. **Select Input Layers**: Choose your polygon layer and a reference layer (line or polygon)
 3. **Configure Parameters**: Set distance and angle thresholds as needed
 4. **Run**: Execute the algorithm to generate aligned polygons
 
@@ -51,7 +51,7 @@ A QGIS plugin that rotates polygons (and lines) to be parallel to a reference li
 
 ### Interactive (map tool)
 1. Open the **Polygons Parallel to Line** toolbar (also reachable from **Vector** → **Polygons Parallel to Line**) and click the **Parallel to Line (interactive)** action.
-2. Click a line feature — or drag a rectangle over one — to set it as the reference. The reference is highlighted on the canvas.
+2. Click a line or polygon feature — or drag a rectangle over one — to set it as the reference. The reference is highlighted on the canvas (polygons get an outline plus translucent fill); if both a line and a polygon are under the click, the line wins.
 3. Toggle editing on the layers you want to modify, then either click a single line/polygon to rotate it, or drag a rectangle to rotate every line/polygon feature that intersects it across all editable visible layers.
 4. Use the **Settings…** action on the same toolbar to choose between rotation strategies (currently *Rotate by longest segment*). Settings persist via `QSettings`.
 5. Right-click or press **Esc** to clear the reference; press **Esc** again to deactivate the tool.
@@ -59,7 +59,7 @@ A QGIS plugin that rotates polygons (and lines) to be parallel to a reference li
 ## Features
 
 ✅ **Two modes**: batch Processing algorithm for whole layers, plus an interactive map-canvas tool for one-off rotations  
-✅ **Automatic Polygon Rotation**: Rotates polygons to align with the nearest line  
+✅ **Automatic Polygon Rotation**: Rotates polygons to align with the nearest reference edge (line or polygon ring)  
 ✅ **Line-target support (interactive)**: the map tool can rotate line features too, not just polygons  
 ✅ **Bulk drag-rectangle**: rotate every line/polygon intersecting a rectangle across all editable visible layers — wrapped per-layer in undo-able edit commands  
 ✅ **CRS-aware**: reference and targets across layers in different CRSes are reconciled via `QgsCoordinateTransform`  
@@ -72,15 +72,15 @@ A QGIS plugin that rotates polygons (and lines) to be parallel to a reference li
 
 The plugin processes each polygon using the following steps:
 
-1. **Closest Line Selection**: Finds the line whose feature is the nearest neighbor of the polygon centroid
+1. **Closest Reference Selection**: Finds the reference feature (line or polygon) whose geometry is the nearest neighbor of the polygon centroid
 
-2. **Distance Check**: If `Max distance from line` > 0 and the polygon-to-line geometry distance (closest edge of the polygon to the closest line) exceeds it → skip rotation
+2. **Distance Check**: If `Max distance from reference` > 0 and the polygon-to-reference geometry distance exceeds it → skip rotation (note: when the target polygon overlaps the reference polygon, the distance is 0 and rotation runs even at small thresholds)
 
-3. **Vertex Analysis**: Identifies the polygon vertex closest to the nearest line
+3. **Vertex Analysis**: Identifies the polygon vertex closest to the nearest reference
 
 4. **Segment Evaluation**: Takes the two polygon segments adjacent to that vertex
 
-5. **Angle Calculation**: Computes the signed angle (delta azimuth) between the closest line segment and each adjacent polygon segment
+5. **Angle Calculation**: Computes the signed angle (delta azimuth) between the closest reference segment (any ring of a polygon reference counts) and each adjacent polygon segment
 
 6. **Rotation Decision** (each delta is compared against `Max angle`):
    - If both deltas are within `Max angle`:
@@ -104,11 +104,11 @@ The plugin processes each polygon using the following steps:
 
 ## Configuration
 
-### Max Distance from Line
+### Max Distance from Reference
 - **Type**: Float (optional)
 - **Range**: ≥ 0.0
 - **Default**: 0.0 (processes all polygons)
-- **Unit**: Line layer CRS units
+- **Unit**: Reference layer CRS units
 
 When set to 0.0, all polygons are processed regardless of distance.
 
@@ -160,7 +160,7 @@ When set to 0.0, all polygons are processed regardless of distance.
 ⚠️ **Important**: Validate and fix geometry errors before running the plugin for optimal results.
 
 ### Recommended Workflow
-1. **Prepare Data**: Ensure polygon and line layers are in the same CRS
+1. **Prepare Data**: Ensure polygon and reference layers are in the same CRS
 2. **Fix Geometries**: Use **Processing Toolbox** → **Vector geometry** → **Fix Geometries**
 3. **Test Parameters**: Start with default settings on a small dataset
 4. **Batch Process**: Apply to full dataset with optimized parameters

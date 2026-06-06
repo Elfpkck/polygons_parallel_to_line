@@ -18,8 +18,8 @@ from qgis.gui import QgsMapToolIdentify, QgsMapToolIdentifyFeature, QgsRubberBan
 from qgis.PyQt.QtCore import QPoint, Qt  # type: ignore[import-not-found]
 from qgis.PyQt.QtGui import QColor  # type: ignore[import-not-found]
 
-from .line import Line, Segment
 from .parallelizer import compute_parallel_geometry
+from .reference import ReferenceFeature, Segment, iter_segments
 
 if TYPE_CHECKING:
     from qgis.core import QgsCoordinateReferenceSystem
@@ -30,27 +30,21 @@ if TYPE_CHECKING:
 
 
 def _closest_segment_of(geom: QgsGeometry, point_xy: QgsPointXY) -> Segment:
-    feature = QgsFeature()
-    feature.setGeometry(geom)
-    return Line(feature).get_closest_segment(point_xy)
+    return ReferenceFeature.from_geometry(geom).get_closest_segment(point_xy)
 
 
 def _pick_segment_in_rect(geom: QgsGeometry, rect_geom: QgsGeometry, rect_center: QgsPointXY) -> Segment:
     best: Segment | None = None
     best_length = 0.0
-    parts = geom.asGeometryCollection() or [geom]
-    for part in parts:
-        verts = list(part.vertices())
-        for i in range(len(verts) - 1):
-            seg = Segment(start=verts[i], end=verts[i + 1])
-            seg_geom = QgsGeometry.fromPolyline([seg.start, seg.end])
-            clipped = seg_geom.intersection(rect_geom)
-            if clipped.isNull() or clipped.isEmpty():
-                continue
-            length = clipped.length()
-            if length > best_length or best is None:
-                best_length = length
-                best = seg
+    for seg in iter_segments(geom):
+        seg_geom = QgsGeometry.fromPolyline([seg.start, seg.end])
+        clipped = seg_geom.intersection(rect_geom)
+        if clipped.isNull() or clipped.isEmpty():
+            continue
+        length = clipped.length()
+        if length > best_length or best is None:
+            best_length = length
+            best = seg
     if best is not None:
         return best
     return _closest_segment_of(geom, rect_center)
@@ -61,10 +55,12 @@ Kind = Literal["line", "polygon"]
 
 class ParallelToLineMapTool(QgsMapToolIdentifyFeature):
     REFERENCE_COLOR = QColor(255, 140, 0, 200)
+    REFERENCE_FILL = QColor(255, 140, 0, 60)
     REFERENCE_WIDTH = 3
     SELECTION_STROKE = QColor(0, 128, 255, 220)
     SELECTION_FILL = QColor(0, 128, 255, 50)
     DRAG_THRESHOLD_PX = 5
+    REFERENCE_CLEARED_MSG = "Reference cleared. Click a line or polygon feature to set a new reference."
 
     def __init__(self, iface: QgisInterface, settings: MapToolSettings) -> None:
         super().__init__(iface.mapCanvas())
@@ -80,7 +76,7 @@ class ParallelToLineMapTool(QgsMapToolIdentifyFeature):
     def activate(self) -> None:
         super().activate()
         self.setCursor(Qt.CursorShape.CrossCursor)
-        self._show_message("Click or drag-rectangle on a line to set the reference.", Qgis.Info)
+        self._show_message("Click or drag-rectangle on a line or polygon to set the reference.", Qgis.Info)
 
     def deactivate(self) -> None:
         self._clear_reference()
@@ -94,7 +90,7 @@ class ParallelToLineMapTool(QgsMapToolIdentifyFeature):
                 return
             if self.reference_geom is not None:
                 self._clear_reference()
-                self._show_message("Reference cleared. Click a line feature to set a new reference.", Qgis.Info)
+                self._show_message(self.REFERENCE_CLEARED_MSG, Qgis.Info)
             else:
                 self.iface.mapCanvas().unsetMapTool(self)
             return
@@ -121,7 +117,7 @@ class ParallelToLineMapTool(QgsMapToolIdentifyFeature):
         if event.button() == Qt.MouseButton.RightButton:
             self._cancel_drag()
             self._clear_reference()
-            self._show_message("Reference cleared. Click a line feature to set a new reference.", Qgis.Info)
+            self._show_message(self.REFERENCE_CLEARED_MSG, Qgis.Info)
             return
 
         if event.button() != Qt.MouseButton.LeftButton:
@@ -154,32 +150,41 @@ class ParallelToLineMapTool(QgsMapToolIdentifyFeature):
 
         map_point = self.toMapCoordinates(event.pos())
 
+        if self.reference_geom is None:
+            # Prefer a line feature under the click; fall back to a polygon only if
+            # no line was hit, so the existing line-reference UX never regresses.
+            for preferred in (QgsWkbTypes.LineGeometry, QgsWkbTypes.PolygonGeometry):
+                for result in results:
+                    layer = result.mLayer
+                    if not isinstance(layer, QgsVectorLayer):
+                        continue
+                    if layer.geometryType() != preferred:
+                        continue
+                    self._set_reference_from_feature(layer, result.mFeature, map_point)
+                    return
+            return
+
         for result in results:
             layer = result.mLayer
             if not isinstance(layer, QgsVectorLayer):
                 continue
-            feature: QgsFeature = result.mFeature
             geom_type = layer.geometryType()
-
-            if self.reference_geom is None:
-                if geom_type != QgsWkbTypes.LineGeometry:
-                    continue
-                ref_geom = feature.geometry()
-                if self.settings.pick_reference_segment:
-                    click_layer = self._point_in_layer_crs(map_point, layer)
-                    segment = _closest_segment_of(ref_geom, click_layer)
-                    ref_geom = QgsGeometry.fromPolylineXY([QgsPointXY(segment.start), QgsPointXY(segment.end)])
-                self._set_reference(ref_geom, layer.crs())
-                self._show_message(
-                    "Reference set. Click or drag-rectangle to rotate line/polygon features.",
-                    Qgis.Success,
-                )
-                return
-
             if geom_type not in (QgsWkbTypes.LineGeometry, QgsWkbTypes.PolygonGeometry):
                 continue
-            self._rotate_target(layer, feature, geom_type, map_point)
+            self._rotate_target(layer, result.mFeature, geom_type, map_point)
             return
+
+    def _set_reference_from_feature(self, layer: QgsVectorLayer, feature: QgsFeature, map_point: QgsPointXY) -> None:
+        ref_geom = feature.geometry()
+        if self.settings.pick_reference_segment:
+            click_layer = self._point_in_layer_crs(map_point, layer)
+            segment = _closest_segment_of(ref_geom, click_layer)
+            ref_geom = QgsGeometry.fromPolylineXY([QgsPointXY(segment.start), QgsPointXY(segment.end)])
+        self._set_reference(ref_geom, layer.crs())
+        self._show_message(
+            "Reference set. Click or drag-rectangle to rotate line/polygon features.",
+            Qgis.Success,
+        )
 
     def _rotate_target(
         self,
@@ -225,35 +230,37 @@ class ParallelToLineMapTool(QgsMapToolIdentifyFeature):
             return
 
         canvas = self.iface.mapCanvas()
-        found: list[tuple[QgsVectorLayer, QgsFeature]] = []
-
-        for canvas_layer in canvas.layers():
-            if not isinstance(canvas_layer, QgsVectorLayer):
-                continue
-            if canvas_layer.geometryType() != QgsWkbTypes.LineGeometry:
-                continue
-            layer_rect = self._transform_rect_to_layer(map_rect, canvas_layer)
-            rect_geom = QgsGeometry.fromRect(layer_rect)
-            request = QgsFeatureRequest().setFilterRect(layer_rect)
-            found.extend(
-                (canvas_layer, feature)
-                for feature in canvas_layer.getFeatures(request)
-                if feature.geometry().intersects(rect_geom)
-            )
+        # Walk line layers first; only consider polygon layers if no line was found,
+        # so a polygon under a line does not steal the reference.
+        found: list[tuple[QgsVectorLayer, QgsFeature, QgsRectangle, QgsGeometry]] = []
+        for preferred in (QgsWkbTypes.LineGeometry, QgsWkbTypes.PolygonGeometry):
+            for canvas_layer in canvas.layers():
+                if not isinstance(canvas_layer, QgsVectorLayer):
+                    continue
+                if canvas_layer.geometryType() != preferred:
+                    continue
+                layer_rect = self._transform_rect_to_layer(map_rect, canvas_layer)
+                rect_geom = QgsGeometry.fromRect(layer_rect)
+                request = QgsFeatureRequest().setFilterRect(layer_rect)
+                found.extend(
+                    (canvas_layer, feature, layer_rect, rect_geom)
+                    for feature in canvas_layer.getFeatures(request)
+                    if feature.geometry().intersects(rect_geom)
+                )
+            if found:
+                break
 
         if not found:
-            self._show_message("No line feature in the selection.", Qgis.Info)
+            self._show_message("No line or polygon feature in the selection.", Qgis.Info)
             return
 
-        layer, feature = found[0]
+        layer, feature, layer_rect, rect_geom = found[0]
         ref_geom = feature.geometry()
         if self.settings.pick_reference_segment:
-            layer_rect = self._transform_rect_to_layer(map_rect, layer)
-            rect_geom = QgsGeometry.fromRect(layer_rect)
             segment = _pick_segment_in_rect(ref_geom, rect_geom, layer_rect.center())
             ref_geom = QgsGeometry.fromPolylineXY([QgsPointXY(segment.start), QgsPointXY(segment.end)])
         self._set_reference(ref_geom, layer.crs())
-        suffix = f" ({len(found)} lines in selection; using topmost)" if len(found) > 1 else ""
+        suffix = f" ({len(found)} features in selection; using topmost)" if len(found) > 1 else ""
         self._show_message(
             f"Reference set{suffix}. Click or drag-rectangle to rotate line/polygon features.",
             Qgis.Success,
@@ -311,12 +318,13 @@ class ParallelToLineMapTool(QgsMapToolIdentifyFeature):
         layer_rotated = 0
         try:
             for feature in features:
+                feature_geom = feature.geometry()
                 target_segment: Segment | None = None
                 if pick_target and rect_geom is not None and rect_center is not None:
-                    target_segment = _pick_segment_in_rect(feature.geometry(), rect_geom, rect_center)
+                    target_segment = _pick_segment_in_rect(feature_geom, rect_geom, rect_center)
                 rotated = compute_parallel_geometry(
                     reference,
-                    feature.geometry(),
+                    feature_geom,
                     kind,
                     by_longest=self.settings.by_longest,
                     target_segment=target_segment,
@@ -378,9 +386,12 @@ class ParallelToLineMapTool(QgsMapToolIdentifyFeature):
             transform = QgsCoordinateTransform(source_crs, map_crs, QgsProject.instance())
             reference.transform(transform)
         self.reference_geom = reference
-        rubber_band = QgsRubberBand(self.iface.mapCanvas(), QgsWkbTypes.LineGeometry)
+        wkb = QgsWkbTypes.geometryType(reference.wkbType())
+        rubber_band = QgsRubberBand(self.iface.mapCanvas(), wkb)
         rubber_band.setColor(self.REFERENCE_COLOR)
         rubber_band.setWidth(self.REFERENCE_WIDTH)
+        if wkb == QgsWkbTypes.PolygonGeometry:
+            rubber_band.setFillColor(self.REFERENCE_FILL)
         rubber_band.setToGeometry(self.reference_geom)
         self.reference_rubber_band = rubber_band
 

@@ -8,22 +8,22 @@ from qgis.core import QgsPointXY
 from .azimuth import calc_delta_azimuth
 
 if TYPE_CHECKING:
-    from .line import Line
     from .polygon import Polygon
+    from .reference import ReferenceFeature
 
 
 class PolygonRotator:
     ABSOLUTE_TOLERANCE = 1e-8
 
-    def __init__(self, poly: Polygon, closest_line: Line, angle_threshold: float, *, by_longest: bool):
+    def __init__(self, poly: Polygon, closest_reference: ReferenceFeature, angle_threshold: float, *, by_longest: bool):
         self.poly = poly
         self.angle_threshold = angle_threshold
         self.by_longest = by_longest
-        poly_closest_vertex = poly.get_closest_vertex(closest_line)
+        poly_closest_vertex = poly.get_closest_vertex(closest_reference)
         self.prev_poly_segment, self.next_poly_segment = poly.get_adjacent_segments(poly_closest_vertex)
-        line_segment = closest_line.get_closest_segment(QgsPointXY(poly_closest_vertex))
-        self.prev_delta_azimuth = calc_delta_azimuth(line_segment.azimuth, self.prev_poly_segment.azimuth)
-        self.next_delta_azimuth = calc_delta_azimuth(line_segment.azimuth, self.next_poly_segment.azimuth)
+        ref_segment = closest_reference.get_closest_segment(QgsPointXY(poly_closest_vertex))
+        self.prev_delta_azimuth = calc_delta_azimuth(ref_segment.azimuth, self.prev_poly_segment.azimuth)
+        self.next_delta_azimuth = calc_delta_azimuth(ref_segment.azimuth, self.next_poly_segment.azimuth)
 
     def rotate(self) -> None:
         prev_within = abs(self.prev_delta_azimuth) <= self.angle_threshold

@@ -13,8 +13,8 @@ from qgis.core import (
 )
 
 from .const import COLUMN_NAME
-from .line import LineLayer
 from .polygon import Polygon
+from .reference import ReferenceLayer
 from .rotator import PolygonRotator
 
 if TYPE_CHECKING:
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 @dataclasses.dataclass
 class Params:
-    line_layer: QgsProcessingFeatureSource
+    reference_layer: QgsProcessingFeatureSource
     polygon_layer: QgsProcessingFeatureSource
     by_longest: bool
     no_multi: bool
@@ -40,8 +40,8 @@ class PolygonsParallelToLine:
         self.total_number: int = self.params.polygon_layer.featureCount()
 
     @cached_property
-    def line_layer(self) -> LineLayer:
-        return LineLayer(self.params.line_layer)
+    def reference_layer(self) -> ReferenceLayer:
+        return ReferenceLayer(self.params.reference_layer)
 
     def run(self) -> None:
         # pydevd_pycharm.settrace("127.0.0.1", port=53100, stdoutToServer=True, stderrToServer=True) # noqa: ERA001
@@ -70,15 +70,15 @@ class PolygonsParallelToLine:
         if self.params.no_multi and poly.is_multi:
             return self.create_new_feature(poly)
 
-        # Selected by centroid distance; an edge of the polygon may be nearer to a different line.
-        closest_line = self.line_layer.get_closest_line(poly.center_xy)
+        # Selected by centroid distance; an edge of the polygon may be nearer to a different reference.
+        closest_reference = self.reference_layer.get_closest_feature(poly.center_xy)
 
-        if self.params.distance and closest_line.geom.distance(poly.geom) > self.params.distance:
+        if self.params.distance and closest_reference.geom.distance(poly.geom) > self.params.distance:
             return self.create_new_feature(poly)
 
         PolygonRotator(
             poly=poly,
-            closest_line=closest_line,
+            closest_reference=closest_reference,
             angle_threshold=self.params.angle,
             by_longest=self.params.by_longest,
         ).rotate()
