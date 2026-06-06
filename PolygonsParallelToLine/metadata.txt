@@ -1,20 +1,20 @@
 [general]
 name=Polygons Parallel to Line
 qgisMinimumVersion=3.22
-description=This plugin rotates polygons parallel to lines
+description=Rotates polygons and lines to be parallel to a reference line, in batch (Processing) or interactively from the map canvas
 version=0.0.0
 author=Andrii Liekariev
 email=elfpkck@gmail.com
 hasProcessingProvider=yes
 
-about=This plugin rotates polygons to be parallel to the nearest line segment. It is useful when working with streets and buildings. Before using the plugin, we strongly recommend checking your data for geometric errors. A full description can be found at https://elfpkck.github.io/polygons_parallel_to_line/
+about=This plugin rotates polygons (and lines) to be parallel to the nearest line segment. Two entry points are provided: a batch Processing algorithm that operates on whole layers, and an interactive map tool that lets you pick a reference line and then click individual line or polygon features to rotate them in place. It is useful when working with streets and buildings. Before using the plugin, we strongly recommend checking your data for geometric errors. A full description can be found at https://elfpkck.github.io/polygons_parallel_to_line/
 
 tracker=https://github.com/Elfpkck/polygons_parallel_to_line/issues
 repository=https://github.com/Elfpkck/polygons_parallel_to_line
 
 changelog=See CHANGELOG.md
 
-tags=polygon, line, vector, parallel, rotating
+tags=polygon, line, vector, parallel, rotating, interactive, map tool
 
 homepage=https://elfpkck.github.io/polygons_parallel_to_line/
 category=Vector

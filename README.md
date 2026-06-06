@@ -5,7 +5,7 @@
 
 # Polygons Parallel to Line - QGIS Python Plugin
 
-A QGIS processing plugin that automatically rotates polygons to align them parallel with their nearest lines based on configurable parameters.
+A QGIS plugin that rotates polygons (and lines) to be parallel to a reference line. Two entry points: a batch Processing algorithm that operates on whole layers, and an interactive map tool that lets you pick a reference line on the canvas and then click — or drag-rectangle — individual line/polygon features to rotate them in place.
 
 [Polygons Parallel to Line Plugin on QGIS Plugins Web Portal](https://plugins.qgis.org/plugins/PolygonsParallelToLine/)
 
@@ -41,6 +41,7 @@ A QGIS processing plugin that automatically rotates polygons to align them paral
 
 ## Quick Start
 
+### Batch (Processing algorithm)
 1. **Access the Plugin**: Go to **Processing** → **Toolbox** → **Polygons parallel to lines**
 2. **Select Input Layers**: Choose your polygon and line layers
 3. **Configure Parameters**: Set distance and angle thresholds as needed
@@ -48,13 +49,24 @@ A QGIS processing plugin that automatically rotates polygons to align them paral
 
 ![How to Access][open]
 
+### Interactive (map tool)
+1. Open the **Polygons Parallel to Line** toolbar (also reachable from **Vector** → **Polygons Parallel to Line**) and click the **Parallel to Line (interactive)** action.
+2. Click a line feature — or drag a rectangle over one — to set it as the reference. The reference is highlighted on the canvas.
+3. Toggle editing on the layers you want to modify, then either click a single line/polygon to rotate it, or drag a rectangle to rotate every line/polygon feature that intersects it across all editable visible layers.
+4. Use the **Settings…** action on the same toolbar to choose between rotation strategies (currently *Rotate by longest segment*). Settings persist via `QSettings`.
+5. Right-click or press **Esc** to clear the reference; press **Esc** again to deactivate the tool.
+
 ## Features
 
+✅ **Two modes**: batch Processing algorithm for whole layers, plus an interactive map-canvas tool for one-off rotations  
 ✅ **Automatic Polygon Rotation**: Rotates polygons to align with the nearest line  
-✅ **Distance-based Filtering**: Optional maximum distance constraint  
-✅ **Angle Threshold Control**: Configurable angle threshold that gates which polygons are rotated  
+✅ **Line-target support (interactive)**: the map tool can rotate line features too, not just polygons  
+✅ **Bulk drag-rectangle**: rotate every line/polygon intersecting a rectangle across all editable visible layers — wrapped per-layer in undo-able edit commands  
+✅ **CRS-aware**: reference and targets across layers in different CRSes are reconciled via `QgsCoordinateTransform`  
+✅ **Distance-based Filtering**: Optional maximum distance constraint (batch mode)  
+✅ **Angle Threshold Control**: Configurable angle threshold that gates which polygons are rotated (batch mode)  
 ✅ **Multipolygon Handling**: Multipolygons are processed (or can be skipped) — see Keynotes for behavior  
-✅ **Rotation Tracking**: Adds a `_rotated` boolean field marking which polygons were modified  
+✅ **Rotation Tracking**: Adds a `_rotated` boolean field marking which polygons were modified (batch mode)  
 
 ## Algorithm
 

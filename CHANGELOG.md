@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
+- Add an interactive map tool: pick a reference line on the canvas, then click — or drag a rectangle — to rotate individual line/polygon features (or every feature in the rectangle across editable visible layers) parallel to it
+- Add a Settings dialog (toggle "Rotate by longest segment"); choices persist via `QSettings`
+- Reconcile reference and target geometries when layers are in different CRSes
+- Register a "Polygons Parallel to Line" toolbar and Vector-menu entry
 
 ## [1.2.0] - 2026-06-01
 - Enhance polygon rotation logic and geometry validation
