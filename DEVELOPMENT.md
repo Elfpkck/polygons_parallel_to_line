@@ -58,14 +58,12 @@ These instructions are specific to PyCharm.
 
 ## Releasing a New Plugin Version
 
-1. Move the entries under `## [Unreleased]` in `CHANGELOG.md` to a new `## [X.Y.Z] - YYYY-MM-DD` section. `qgis-plugin-ci` requires a 3-part `MAJOR.MINOR.PATCH` version — `## [1.2]` will be silently ignored and the published changelog will be empty.
-2. Commit and push to `main`.
-3. Tag and push (3-part versions only):
+1. Make sure `CHANGELOG.md`'s `## [Unreleased]` section has the entries you want shipped, then on `main` with a clean working tree run:
    ```shell
-   git tag X.Y.Z
-   git push origin X.Y.Z
+   make tag VERSION=X.Y.Z
    ```
-4. The `Release` workflow (`.github/workflows/release.yaml`) runs the tests, then publishes to plugins.qgis.org and creates a GitHub Release with the `.zip` attached.
+   This rewrites `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD`, inserts a fresh empty `## [Unreleased]` above it, commits, tags, and pushes both to `origin` atomically. `qgis-plugin-ci` requires a 3-part `MAJOR.MINOR.PATCH` version — `## [1.2]` would be silently ignored and the published changelog would be empty.
+2. The `Release` workflow (`.github/workflows/release.yaml`) runs the tests, then publishes to plugins.qgis.org and creates a GitHub Release with the `.zip` attached.
 
 Required GitHub Secrets (one-time setup, repo Settings → Secrets and variables → Actions):
 - `OSGEO_USERNAME` — your plugins.qgis.org account username
