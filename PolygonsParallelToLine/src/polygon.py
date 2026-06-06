@@ -5,12 +5,12 @@ from typing import TYPE_CHECKING
 
 from qgis.core import Qgis, QgsGeometry, QgsProcessingException
 
-from .line import Segment
+from .reference import Segment
 
 if TYPE_CHECKING:
     from qgis.core import QgsFeature, QgsPoint, QgsPointXY
 
-    from .line import Line
+    from .reference import ReferenceFeature
 
 
 class Polygon:
@@ -24,9 +24,9 @@ class Polygon:
     def center_xy(self) -> QgsPointXY:
         return self.geom.centroid().asPoint()
 
-    def get_closest_vertex(self, closest_line: Line) -> QgsPoint:
-        nearest_point_on_line_geom = closest_line.geom.nearestPoint(self.geom)
-        _, closest_vertex_idx = self.geom.closestVertexWithContext(nearest_point_on_line_geom.asPoint())
+    def get_closest_vertex(self, closest_reference: ReferenceFeature) -> QgsPoint:
+        nearest_point_on_ref = closest_reference.geom.nearestPoint(self.geom)
+        _, closest_vertex_idx = self.geom.closestVertexWithContext(nearest_point_on_ref.asPoint())
         return self.geom.vertexAt(closest_vertex_idx)
 
     def get_adjacent_segments(self, target_vertex: QgsPoint) -> tuple[Segment, Segment]:

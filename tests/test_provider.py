@@ -18,7 +18,7 @@ def test_provider_id(provider_instance):
 
 def test_provider_name(provider_instance):
     """Test if the provider name is correct."""
-    assert provider_instance.name() == "Polygons parallel to lines"
+    assert provider_instance.name() == "Polygons parallel to a reference layer"
 
 
 def test_provider_load_algorithms(provider_instance):

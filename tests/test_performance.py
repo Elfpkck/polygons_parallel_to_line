@@ -64,7 +64,7 @@ def test_perf_smoke_grid_1024_polygons(qgis_processing, add_features):
     add_features(vector_layer=poly_layer, wkt_geometries=tuple(_grid_polygons()))
 
     params = {
-        "LINE_LAYER": line_layer,
+        "REFERENCE_LAYER": line_layer,
         "POLYGON_LAYER": poly_layer,
         "LONGEST": False,
         "NO_MULTI": False,

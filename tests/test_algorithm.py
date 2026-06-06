@@ -14,10 +14,12 @@ def algorithm_instance():
 def test_algorithm_initialization(algorithm_instance):
     """Test if the Algorithm instance initializes correctly."""
     assert algorithm_instance.name() == "pptl_algo"
-    assert algorithm_instance.displayName() == "Polygons parallel to lines"
+    assert algorithm_instance.displayName() == "Polygons parallel to a reference layer"
     assert algorithm_instance.group() == "Algorithms for vector layers"
     assert algorithm_instance.groupId() == "pptl_group"
-    assert algorithm_instance.shortHelpString() == "This plugin rotates polygons parallel to the lines"
+    assert algorithm_instance.shortHelpString() == (
+        "Rotates polygons parallel to features in a reference layer (line or polygon)."
+    )
     assert algorithm_instance.helpUrl() == "https://elfpkck.github.io/polygons_parallel_to_line/"
 
 

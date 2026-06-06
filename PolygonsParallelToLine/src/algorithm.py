@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 
 class Algorithm(QgsProcessingAlgorithm):
     OUTPUT_LAYER = "OUTPUT"
-    LINE_LAYER = "LINE_LAYER"
+    REFERENCE_LAYER = "REFERENCE_LAYER"
     POLYGON_LAYER = "POLYGON_LAYER"
     LONGEST = "LONGEST"
     NO_MULTI = "NO_MULTI"
@@ -41,7 +41,7 @@ class Algorithm(QgsProcessingAlgorithm):
         return "pptl_algo"
 
     def displayName(self) -> str:  # noqa: N802
-        return "Polygons parallel to lines"
+        return "Polygons parallel to a reference layer"
 
     def group(self) -> str:
         return "Algorithms for vector layers"
@@ -50,7 +50,7 @@ class Algorithm(QgsProcessingAlgorithm):
         return "pptl_group"
 
     def shortHelpString(self) -> str:  # noqa: N802
-        return "This plugin rotates polygons parallel to the lines"
+        return "Rotates polygons parallel to features in a reference layer (line or polygon)."
 
     def helpUrl(self) -> str:  # noqa: N802
         return "https://elfpkck.github.io/polygons_parallel_to_line/"
@@ -63,7 +63,11 @@ class Algorithm(QgsProcessingAlgorithm):
             )
         )
         self.addParameter(
-            QgsProcessingParameterFeatureSource(self.LINE_LAYER, "Line layer", [QgsProcessing.TypeVectorLine])
+            QgsProcessingParameterFeatureSource(
+                self.REFERENCE_LAYER,
+                "Reference layer",
+                [QgsProcessing.TypeVectorLine, QgsProcessing.TypeVectorPolygon],
+            )
         )
         self.addParameter(
             QgsProcessingParameterFeatureSource(self.POLYGON_LAYER, "Polygon layer", [QgsProcessing.TypeVectorPolygon])
@@ -75,7 +79,7 @@ class Algorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.DISTANCE,
-                "Max distance from line (in units of line layer CRS) (optional)",
+                "Max distance from reference (in units of reference layer CRS) (optional)",
                 type=QgsProcessingParameterNumber.Double,
                 minValue=0.0,
                 defaultValue=0.0,
@@ -112,7 +116,7 @@ class Algorithm(QgsProcessingAlgorithm):
             crs=polygon_layer.sourceCrs(),
         )
         params = Params(
-            line_layer=self.parameterAsSource(parameters, self.LINE_LAYER, context),
+            reference_layer=self.parameterAsSource(parameters, self.REFERENCE_LAYER, context),
             polygon_layer=polygon_layer,
             by_longest=self.parameterAsBool(parameters, self.LONGEST, context),
             no_multi=self.parameterAsBool(parameters, self.NO_MULTI, context),

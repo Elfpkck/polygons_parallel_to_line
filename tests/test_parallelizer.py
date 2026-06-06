@@ -6,8 +6,8 @@ import pytest
 from qgis.core import QgsGeometry, QgsPoint, QgsPointXY
 
 from PolygonsParallelToLine.src.azimuth import calc_delta_azimuth
-from PolygonsParallelToLine.src.line import Segment
 from PolygonsParallelToLine.src.parallelizer import compute_parallel_geometry
+from PolygonsParallelToLine.src.reference import Segment
 
 
 def _delta_to_reference(target_wkt: str, reference_wkt: str, *, by_longest: bool) -> float:
