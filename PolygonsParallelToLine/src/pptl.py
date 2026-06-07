@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 from functools import cached_property
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from qgis.core import (
     QgsFeature,
@@ -10,12 +10,13 @@ from qgis.core import (
     QgsFields,
     QgsProcessingException,
     QgsProcessingFeatureSource,
+    QgsWkbTypes,
 )
 
 from .const import COLUMN_NAME
-from .polygon import Polygon
+from .parallelizer import compute_parallel_geometry
 from .reference import ReferenceLayer
-from .rotator import PolygonRotator
+from .target import Target
 
 if TYPE_CHECKING:
     from qgis.core import QgsProcessingFeedback
@@ -24,7 +25,7 @@ if TYPE_CHECKING:
 @dataclasses.dataclass
 class Params:
     reference_layer: QgsProcessingFeatureSource
-    polygon_layer: QgsProcessingFeatureSource
+    target_layer: QgsProcessingFeatureSource
     by_longest: bool
     no_multi: bool
     distance: float
@@ -33,59 +34,67 @@ class Params:
     sink: QgsFeatureSink
 
 
-class PolygonsParallelToLine:
+class ParallelToReference:
     def __init__(self, feedback: QgsProcessingFeedback, params: Params):
         self.feedback = feedback
         self.params = params
-        self.total_number: int = self.params.polygon_layer.featureCount()
+        self.total_number: int = self.params.target_layer.featureCount()
 
     @cached_property
     def reference_layer(self) -> ReferenceLayer:
         return ReferenceLayer(self.params.reference_layer)
 
+    @cached_property
+    def target_kind(self) -> Literal["line", "polygon"]:
+        gtype = QgsWkbTypes.geometryType(self.params.target_layer.wkbType())
+        return "line" if gtype == QgsWkbTypes.LineGeometry else "polygon"
+
     def run(self) -> None:
         # pydevd_pycharm.settrace("127.0.0.1", port=53100, stdoutToServer=True, stderrToServer=True) # noqa: ERA001
-        self.validate_polygon_layer()
-        self.rotate_polygons()
+        self.validate_target_layer()
+        self.rotate_features()
 
-    def validate_polygon_layer(self) -> None:
+    def validate_target_layer(self) -> None:
         if not self.total_number:
-            msg = "Layer does not have any polygons"
+            msg = "Target layer is empty"
             raise QgsProcessingException(msg)
 
-    def rotate_polygons(self) -> None:
+    def rotate_features(self) -> None:
         total = 100.0 / self.total_number
 
-        for i, polygon in enumerate(self.params.polygon_layer.getFeatures(), start=1):
+        for i, feature in enumerate(self.params.target_layer.getFeatures(), start=1):
             if self.feedback.isCanceled():
                 break
 
-            processed_polygon = self.process_polygon(polygon)
-            self.params.sink.addFeature(processed_polygon, QgsFeatureSink.FastInsert)
+            processed = self.process_feature(feature)
+            self.params.sink.addFeature(processed, QgsFeatureSink.FastInsert)
             self.feedback.setProgress(int(i * total))
 
-    def process_polygon(self, polygon: QgsFeature) -> QgsFeature:
-        poly = Polygon(polygon)
+    def process_feature(self, feature: QgsFeature) -> QgsFeature:
+        target = Target(feature)
 
-        if self.params.no_multi and poly.is_multi:
-            return self.create_new_feature(poly)
+        if self.params.no_multi and target.is_multi:
+            return self.create_new_feature(target)
 
-        # Selected by centroid distance; an edge of the polygon may be nearer to a different reference.
-        closest_reference = self.reference_layer.get_closest_feature(poly.center_xy)
+        # Selected by centroid distance; an edge of the target may be nearer to a different reference.
+        closest_reference = self.reference_layer.get_closest_feature(target.center_xy)
 
-        if self.params.distance and closest_reference.geom.distance(poly.geom) > self.params.distance:
-            return self.create_new_feature(poly)
+        if self.params.distance and closest_reference.geom.distance(target.geom) > self.params.distance:
+            return self.create_new_feature(target)
 
-        PolygonRotator(
-            poly=poly,
-            closest_reference=closest_reference,
-            angle_threshold=self.params.angle,
+        rotated_geom = compute_parallel_geometry(
+            closest_reference.geom,
+            target.geom,
+            self.target_kind,
             by_longest=self.params.by_longest,
-        ).rotate()
-        return self.create_new_feature(poly)
+            angle_threshold=self.params.angle,
+        )
+        if rotated_geom is not None:
+            target.apply_rotated_geometry(rotated_geom)
+        return self.create_new_feature(target)
 
-    def create_new_feature(self, poly: Polygon) -> QgsFeature:
+    def create_new_feature(self, target: Target) -> QgsFeature:
         new_feature = QgsFeature(self.params.fields)
-        new_feature.setGeometry(poly.geom)
-        new_feature.setAttribute(COLUMN_NAME, poly.is_rotated)
+        new_feature.setGeometry(target.geom)
+        new_feature.setAttribute(COLUMN_NAME, target.is_rotated)
         return new_feature

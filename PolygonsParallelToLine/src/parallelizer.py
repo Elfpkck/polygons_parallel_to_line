@@ -6,34 +6,35 @@ from typing import Literal
 from qgis.core import Qgis, QgsFeature, QgsGeometry
 
 from .azimuth import calc_delta_azimuth
-from .polygon import Polygon
 from .reference import ReferenceFeature, Segment, iter_segments
-from .rotator import PolygonRotator
+from .rotator import TargetRotator
+from .target import Target
 
 ABSOLUTE_TOLERANCE = 1e-8
 
 
-def compute_parallel_geometry(
+def compute_parallel_geometry(  # noqa: PLR0913
     reference_geom: QgsGeometry,
     target_geom: QgsGeometry,
     target_kind: Literal["line", "polygon"],
     *,
     by_longest: bool,
     target_segment: Segment | None = None,
+    angle_threshold: float = math.inf,
 ) -> QgsGeometry | None:
     reference = ReferenceFeature.from_geometry(reference_geom)
 
     if target_kind == "polygon" and target_segment is None:
         target_feature = QgsFeature()
         target_feature.setGeometry(target_geom)
-        poly = Polygon(target_feature)
-        PolygonRotator(
-            poly=poly,
+        target = Target(target_feature)
+        TargetRotator(
+            target=target,
             closest_reference=reference,
-            angle_threshold=math.inf,
+            angle_threshold=angle_threshold,
             by_longest=by_longest,
         ).rotate()
-        return QgsGeometry(poly.geom) if poly.is_rotated else None
+        return QgsGeometry(target.geom) if target.is_rotated else None
 
     centroid_xy = target_geom.centroid().asPoint()
     ref_segment = reference.get_closest_segment(centroid_xy)
@@ -43,6 +44,9 @@ def compute_parallel_geometry(
         else _pick_target_segment(target_geom, ref_segment, by_longest=by_longest)
     )
     delta = calc_delta_azimuth(ref_segment.azimuth, chosen_target_segment.azimuth)
+
+    if abs(delta) > angle_threshold:
+        return None
 
     if math.isclose(delta, 0.0, abs_tol=ABSOLUTE_TOLERANCE):
         return None
