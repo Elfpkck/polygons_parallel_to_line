@@ -13,7 +13,7 @@ dependencies = [
 ]
 description = ""
 license = "GPL-2.0-or-later"
-name = "polygons-parallel-to-line"
+name = "parallelizer"
 readme = "README.md"
 requires-python = ">=3.9"
 version = "0.0.0"
@@ -42,7 +42,7 @@ markers = ["perf: performance smoke tests (skipped by default; run with `-m perf
 [tool.qgis-plugin-ci]
 github_organization_slug = "Elfpkck"
 plugin_path = "PolygonsParallelToLine"
-project_slug = "polygons_parallel_to_line"
+project_slug = "parallelizer"
 
 [tool.ruff]
 line-length = 120

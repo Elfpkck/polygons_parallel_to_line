@@ -20,7 +20,7 @@ def test_algorithm_initialization(algorithm_instance):
     assert algorithm_instance.shortHelpString() == (
         "Rotates polygons parallel to features in a reference layer (line or polygon)."
     )
-    assert algorithm_instance.helpUrl() == "https://elfpkck.github.io/polygons_parallel_to_line/"
+    assert algorithm_instance.helpUrl() == "https://elfpkck.github.io/parallelizer/"
 
 
 def test_algorithm_create_instance(algorithm_instance):
