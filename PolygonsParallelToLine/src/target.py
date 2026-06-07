@@ -13,10 +13,10 @@ if TYPE_CHECKING:
     from .reference import ReferenceFeature
 
 
-class Polygon:
-    def __init__(self, polygon_feature: QgsFeature):
-        self.feature = polygon_feature
-        self.geom: QgsGeometry = polygon_feature.geometry()
+class Target:
+    def __init__(self, feature: QgsFeature):
+        self.feature = feature
+        self.geom: QgsGeometry = feature.geometry()
         self.is_multi: bool = self.geom.isMultipart()
         self.is_rotated: bool = False
 
@@ -45,7 +45,7 @@ class Polygon:
                         Segment(start=target_vertex, end=part_geom.vertexAt(next_vertex_idx)),
                     )
 
-        msg = f"Vertex {target_vertex} not found in polygon {self.feature.id()}"
+        msg = f"Vertex {target_vertex} not found in target {self.feature.id()}"
         raise QgsProcessingException(msg)
 
     def rotate(self, angle: float) -> None:
@@ -54,3 +54,8 @@ class Polygon:
         if result == Qgis.GeometryOperationResult.Success:
             self.feature.setGeometry(self.geom)
             self.is_rotated = True
+
+    def apply_rotated_geometry(self, geom: QgsGeometry) -> None:
+        self.geom = geom
+        self.feature.setGeometry(geom)
+        self.is_rotated = True
