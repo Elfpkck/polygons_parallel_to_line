@@ -43,9 +43,9 @@ A QGIS plugin that rotates polygons (and lines) to be parallel to a reference fe
 
 ### Batch (Processing algorithm)
 1. **Access the Plugin**: Go to **Processing** → **Toolbox** → **Parallelizer**
-2. **Select Input Layers**: Choose your polygon layer and a reference layer (line or polygon)
+2. **Select Input Layers**: Choose your target layer (line or polygon) and a reference layer (line or polygon)
 3. **Configure Parameters**: Set distance and angle thresholds as needed
-4. **Run**: Execute the algorithm to generate aligned polygons
+4. **Run**: Execute the algorithm to generate aligned features
 
 ![How to Access][open]
 
@@ -58,17 +58,20 @@ A QGIS plugin that rotates polygons (and lines) to be parallel to a reference fe
 
 ## Features
 
-✅ **Two modes**: batch Processing algorithm for whole layers, plus an interactive map-canvas tool for one-off rotations  
-✅ **Automatic Polygon Rotation**: Rotates polygons to align with the nearest reference edge (line or polygon ring)  
-✅ **Line-target support (interactive)**: the map tool can rotate line features too, not just polygons  
-✅ **Bulk drag-rectangle**: rotate every line/polygon intersecting a rectangle across all editable visible layers — wrapped per-layer in undo-able edit commands  
-✅ **CRS-aware**: reference and targets across layers in different CRSes are reconciled via `QgsCoordinateTransform`  
-✅ **Distance-based Filtering**: Optional maximum distance constraint (batch mode)  
-✅ **Angle Threshold Control**: Configurable angle threshold that gates which polygons are rotated (batch mode)  
-✅ **Multipolygon Handling**: Multipolygons are processed (or can be skipped) — see Keynotes for behavior  
-✅ **Rotation Tracking**: Adds a `_rotated` boolean field marking which polygons were modified (batch mode)  
+- **Two modes**: batch Processing algorithm for whole layers, plus an interactive map-canvas tool for one-off rotations  
+- **Automatic Rotation**: Rotates polygons or lines to align with the nearest reference edge (line or polygon ring)  
+- **Line-target support**: both batch and interactive modes can rotate line features, not just polygons  
+- **Bulk drag-rectangle**: rotate every line/polygon intersecting a rectangle across all editable visible layers — wrapped per-layer in undo-able edit commands  
+- **CRS-aware**: reference and targets across layers in different CRSes are reconciled via `QgsCoordinateTransform`  
+- **QGIS 4 / Qt 6 compatible**: declared via `qgisMaximumVersion=4.99`, with Qt enums fully scoped for PyQt6  
+- **Distance-based Filtering**: Optional maximum distance constraint (batch mode)  
+- **Angle Threshold Control**: Configurable angle threshold that gates which features are rotated (batch mode)  
+- **Multipart Handling**: Multipart features (multipolygons / multilines) are processed (or can be skipped) — see Keynotes for behavior  
+- **Rotation Tracking**: Adds a `_rotated` boolean field marking which features were modified (batch mode)  
 
 ## Algorithm
+
+### Polygon targets
 
 The plugin processes each polygon using the following steps:
 
@@ -94,10 +97,14 @@ The plugin processes each polygon using the following steps:
 
 ![Default Usage][default_usage]
 
+### Line targets
+
+For line targets, one segment of the target line is selected — the longest when `Rotate by longest segment` is enabled, otherwise the segment whose delta-azimuth to the closest reference segment is smallest. The whole line is rotated around its centroid by that delta, unless the delta exceeds `Max angle` (in which case no rotation is applied).
+
 ### Keynotes
-- Rotation center is the polygon centroid (for multipolygons: the overall centroid of the whole multi-geometry)
-- Interior rings and duplicate vertices are ignored when picking the rotation pivot, but they are preserved in the output geometry
-- Multipolygons are rotated as a single rigid body around the overall centroid by the angle chosen from the part that contains the closest vertex — individual parts are not aligned independently
+- Rotation center is the target feature's centroid (for multipart features: the overall centroid of the whole multi-geometry)
+- Interior rings and duplicate vertices are ignored when picking the rotation pivot for polygon targets, but they are preserved in the output geometry
+- Multipart features are rotated as a single rigid body around the overall centroid by the angle chosen from the part that contains the closest vertex (polygons) or picked segment (lines) — individual parts are not aligned independently
 - The `_rotated` field indicates transformation status (boolean)
 
 ![Rotated Field][_rotated]
@@ -107,10 +114,10 @@ The plugin processes each polygon using the following steps:
 ### Max Distance from Reference
 - **Type**: Float (optional)
 - **Range**: ≥ 0.0
-- **Default**: 0.0 (processes all polygons)
+- **Default**: 0.0 (processes all features)
 - **Unit**: Reference layer CRS units
 
-When set to 0.0, all polygons are processed regardless of distance.
+When set to 0.0, all features are processed regardless of distance.
 
 ![Distance Configuration][distance]
 
@@ -118,21 +125,21 @@ When set to 0.0, all polygons are processed regardless of distance.
 - **Type**: Float (optional)  
 - **Range**: 0.0 - 89.9 degrees
 - **Default**: 89.9
-- **Purpose**: Threshold on the angle between a polygon segment and the closest line segment. A polygon is only rotated when at least one of its two adjacent segments has a delta angle within this threshold; otherwise the polygon is left unrotated. The applied rotation is bounded by this threshold.
+- **Purpose**: Threshold on the rotation angle (the delta azimuth between a target segment and the closest reference segment). A feature is only rotated when at least one candidate delta is within this threshold; otherwise it is left unrotated. For polygons the two segments adjacent to the closest vertex are evaluated; for lines a single picked target segment is evaluated. The applied rotation is bounded by this threshold.
 
 ![Angle Configuration][angle]
 
 ### Rotate by Longest Segment
 - **Type**: Boolean
 - **Default**: False
-- **Behavior**: When both segments have valid angles (≤ Max angle), prioritizes the longest segment
+- **Behavior**: Prefer the longest segment when picking the rotation. For polygons this only kicks in when both adjacent segments are within Max angle (otherwise the in-threshold one wins); for lines the longest segment of the target is picked outright.
 
 ![Longest Segment Option][by_longest]
 
-### Skip Multipolygons
+### Skip Multipart Features
 - **Type**: Boolean
 - **Default**: False
-- **Purpose**: When enabled, multipolygon features are passed through to the output unchanged (with `_rotated=False`) instead of being rotated. They are not removed from the output layer.
+- **Purpose**: When enabled, multipart features (multipolygons / multilines) are passed through to the output unchanged (with `_rotated=False`) instead of being rotated. They are not removed from the output layer.
 
 ## Usage Examples
 
@@ -147,20 +154,20 @@ When set to 0.0, all polygons are processed regardless of distance.
 
 ## Requirements
 
-- **QGIS**: 3.0 or higher
+- **QGIS**: 3.0 or higher (compatible with QGIS 4.x / Qt 6)
 - **Dependencies**: Standard QGIS processing framework
 
 ### Compatibility
-- ✅ Windows
-- ✅ macOS  
-- ✅ Linux
+- Windows
+- macOS  
+- Linux
 
 ## Best Practices
 
 ⚠️ **Important**: Validate and fix geometry errors before running the plugin for optimal results.
 
 ### Recommended Workflow
-1. **Prepare Data**: Ensure polygon and reference layers are in the same CRS
+1. **Prepare Data**: Ensure target and reference layers are in the same CRS
 2. **Fix Geometries**: Use **Processing Toolbox** → **Vector geometry** → **Fix Geometries**
 3. **Test Parameters**: Start with default settings on a small dataset
 4. **Batch Process**: Apply to full dataset with optimized parameters
