@@ -274,9 +274,9 @@ wheels = [
 
 [[package]]
 name = "pydevd-pycharm"
-version = "262.6653.28"
+version = "262.7132.31"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/71/b2/78729ea83475f018906566c81007e23a173acbe735a1daa95d78e2050255/pydevd_pycharm-262.6653.28.tar.gz", hash = "sha256:df53de5c072326d3b76ee66d1478ea48a213b415f0114b4774b773e94d743d8f", size = 7635947, upload-time = "2026-05-28T11:31:50.306Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1a/f0/3d21955ca6d9343804df049a3afbd8cc1b0f6b2aec448d522050479f8d72/pydevd_pycharm-262.7132.31.tar.gz", hash = "sha256:77b3b7df14eb98f2a1c4322d791a40baf5c9417b4c1e9d257303a1c7b2635b69", size = 7635779, upload-time = "2026-06-05T14:36:23.063Z" }
 
 [[package]]
 name = "pygments"
