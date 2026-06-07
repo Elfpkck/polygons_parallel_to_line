@@ -18,7 +18,7 @@ class Provider(QgsProcessingProvider):
         return "pptl"
 
     def name(self) -> str:
-        return "Polygons parallel to a reference layer"
+        return "Parallelizer"
 
     def icon(self) -> QIcon:
         return super().icon()
