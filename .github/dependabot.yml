@@ -8,9 +8,9 @@ updates:
       timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
-      - "Elfpkck"
+      - "elfpkck"
     assignees:
-      - "Elfpkck"
+      - "elfpkck"
     labels:
       - "ci"
 
@@ -21,9 +21,9 @@ updates:
       time: "03:10"
       timezone: "UTC"
     reviewers:
-      - "Elfpkck"
+      - "elfpkck"
     assignees:
-      - "Elfpkck"
+      - "elfpkck"
     labels:
       - "ci"
 
@@ -34,9 +34,9 @@ updates:
       time: "03:15"
       timezone: "UTC"
     reviewers:
-      - "Elfpkck"
+      - "elfpkck"
     assignees:
-      - "Elfpkck"
+      - "elfpkck"
     labels:
       - "dependencies"
     allow:
