@@ -20,7 +20,7 @@ class MapToolSettingsDialog(QDialog):
     def __init__(self, settings: MapToolSettings, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._settings = settings
-        self.setWindowTitle("Polygons Parallel to Line — Settings")
+        self.setWindowTitle("Parallelizer — Settings")
 
         rotation_group = QGroupBox("Rotation")
         self._by_longest_checkbox = QCheckBox("Rotate by longest segment")

@@ -41,13 +41,13 @@ class Algorithm(QgsProcessingAlgorithm):
         return "pptl_algo"
 
     def displayName(self) -> str:  # noqa: N802
-        return "Polygons parallel to a reference layer"
+        return "Parallelizer"
 
     def group(self) -> str:
-        return "Algorithms for vector layers"
+        return ""
 
     def groupId(self) -> str:  # noqa: N802
-        return "pptl_group"
+        return ""
 
     def shortHelpString(self) -> str:  # noqa: N802
         return "Rotates polygons parallel to features in a reference layer (line or polygon)."

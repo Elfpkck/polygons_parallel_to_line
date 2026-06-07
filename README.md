@@ -3,11 +3,11 @@
 
 [![QGIS](https://qgis.github.io/qgis-uni-navigation/logo.svg)](https://qgis.org)
 
-# Polygons Parallel to Line - QGIS Python Plugin
+# Parallelizer - QGIS Python Plugin
 
 A QGIS plugin that rotates polygons (and lines) to be parallel to a reference feature (line or polygon — polygon boundary rings are treated as polylines). Two entry points: a batch Processing algorithm that operates on whole layers, and an interactive map tool that lets you pick a reference feature on the canvas and then click — or drag-rectangle — individual line/polygon features to rotate them in place.
 
-[Polygons Parallel to Line Plugin on QGIS Plugins Web Portal](https://plugins.qgis.org/plugins/PolygonsParallelToLine/)
+[Parallelizer Plugin on QGIS Plugins Web Portal](https://plugins.qgis.org/plugins/PolygonsParallelToLine/)
 
 ![Plugin Demo][intro]
 
@@ -29,7 +29,7 @@ A QGIS plugin that rotates polygons (and lines) to be parallel to a reference fe
 ### Method 1: QGIS Plugin Manager (Recommended)
 1. Open QGIS
 2. Go to **Plugins** → **Manage and Install Plugins**
-3. Search for "Polygons Parallel to Line"
+3. Search for "Parallelizer"
 4. Click **Install Plugin**
 
 ![Installation Guide][install]
@@ -42,7 +42,7 @@ A QGIS plugin that rotates polygons (and lines) to be parallel to a reference fe
 ## Quick Start
 
 ### Batch (Processing algorithm)
-1. **Access the Plugin**: Go to **Processing** → **Toolbox** → **Polygons parallel to a reference layer**
+1. **Access the Plugin**: Go to **Processing** → **Toolbox** → **Parallelizer**
 2. **Select Input Layers**: Choose your polygon layer and a reference layer (line or polygon)
 3. **Configure Parameters**: Set distance and angle thresholds as needed
 4. **Run**: Execute the algorithm to generate aligned polygons
@@ -50,7 +50,7 @@ A QGIS plugin that rotates polygons (and lines) to be parallel to a reference fe
 ![How to Access][open]
 
 ### Interactive (map tool)
-1. Open the **Polygons Parallel to Line** toolbar (also reachable from **Vector** → **Polygons Parallel to Line**) and click the **Parallel to Line (interactive)** action.
+1. Open the **Parallelizer** toolbar (also reachable from **Vector** → **Parallelizer**) and click the **Parallel to Line (interactive)** action.
 2. Click a line or polygon feature — or drag a rectangle over one — to set it as the reference. The reference is highlighted on the canvas (polygons get an outline plus translucent fill); if both a line and a polygon are under the click, the line wins.
 3. Toggle editing on the layers you want to modify, then either click a single line/polygon to rotate it, or drag a rectangle to rotate every line/polygon feature that intersects it across all editable visible layers.
 4. Use the **Settings…** action on the same toolbar to choose between rotation strategies (currently *Rotate by longest segment*). Settings persist via `QSettings`.

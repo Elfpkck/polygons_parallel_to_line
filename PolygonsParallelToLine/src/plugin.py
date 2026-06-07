@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
     from .map_tool import ParallelToLineMapTool
 
-_MENU_NAME = "Polygons Parallel to Line"
+_MENU_NAME = "Parallelizer"
 
 
 class Plugin:
