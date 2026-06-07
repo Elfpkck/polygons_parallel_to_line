@@ -40,7 +40,7 @@ addopts = "-m 'not perf'"
 markers = ["perf: performance smoke tests (skipped by default; run with `-m perf`)"]
 
 [tool.qgis-plugin-ci]
-github_organization_slug = "Elfpkck"
+github_organization_slug = "elfpkck"
 plugin_path = "PolygonsParallelToLine"
 project_slug = "parallelizer"
 

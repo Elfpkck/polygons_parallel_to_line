@@ -1,5 +1,5 @@
-[![PR Validation](https://github.com/Elfpkck/parallelizer/actions/workflows/test.yaml/badge.svg?event=pull_request)](https://github.com/Elfpkck/parallelizer/actions/workflows/test.yaml)
-[![codecov](https://codecov.io/gh/Elfpkck/parallelizer/graph/badge.svg?token=QEHFI3XE08)](https://codecov.io/gh/Elfpkck/parallelizer)
+[![PR Validation](https://github.com/elfpkck/parallelizer/actions/workflows/test.yaml/badge.svg?event=pull_request)](https://github.com/elfpkck/parallelizer/actions/workflows/test.yaml)
+[![codecov](https://codecov.io/gh/elfpkck/parallelizer/graph/badge.svg?token=QEHFI3XE08)](https://codecov.io/gh/elfpkck/parallelizer)
 
 [![QGIS](https://qgis.github.io/qgis-uni-navigation/logo.svg)](https://qgis.org)
 
@@ -182,19 +182,19 @@ This project is licensed under the [GNU General Public License v2.0 or later](LI
 
 ## Support
 
-- 🐛 [Report Issues](https://github.com/Elfpkck/parallelizer/issues)
-- 💬 [Discussion Forum](https://github.com/Elfpkck/parallelizer/discussions)
+- 🐛 [Report Issues](https://github.com/elfpkck/parallelizer/issues)
+- 💬 [Discussion Forum](https://github.com/elfpkck/parallelizer/discussions)
 
 ---
 
 **Made with ❤️ for the QGIS community**
 
 <!-- Image References -->
-[intro]: https://raw.githubusercontent.com/Elfpkck/pptl_images/refs/heads/master/intro.gif
-[install]: https://raw.githubusercontent.com/Elfpkck/pptl_images/refs/heads/master/install.gif
-[open]: https://raw.githubusercontent.com/Elfpkck/pptl_images/refs/heads/master/open.gif
-[default_usage]: https://raw.githubusercontent.com/Elfpkck/pptl_images/refs/heads/master/default_usage.gif
-[_rotated]: https://raw.githubusercontent.com/Elfpkck/pptl_images/refs/heads/master/_rotated.png
-[distance]: https://raw.githubusercontent.com/Elfpkck/pptl_images/refs/heads/master/distance.gif
-[angle]: https://raw.githubusercontent.com/Elfpkck/pptl_images/refs/heads/master/angle.gif
-[by_longest]: https://raw.githubusercontent.com/Elfpkck/pptl_images/refs/heads/master/by_longest.gif
+[intro]: https://raw.githubusercontent.com/elfpkck/pptl_images/refs/heads/master/intro.gif
+[install]: https://raw.githubusercontent.com/elfpkck/pptl_images/refs/heads/master/install.gif
+[open]: https://raw.githubusercontent.com/elfpkck/pptl_images/refs/heads/master/open.gif
+[default_usage]: https://raw.githubusercontent.com/elfpkck/pptl_images/refs/heads/master/default_usage.gif
+[_rotated]: https://raw.githubusercontent.com/elfpkck/pptl_images/refs/heads/master/_rotated.png
+[distance]: https://raw.githubusercontent.com/elfpkck/pptl_images/refs/heads/master/distance.gif
+[angle]: https://raw.githubusercontent.com/elfpkck/pptl_images/refs/heads/master/angle.gif
+[by_longest]: https://raw.githubusercontent.com/elfpkck/pptl_images/refs/heads/master/by_longest.gif
