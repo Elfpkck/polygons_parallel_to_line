@@ -8,16 +8,16 @@ author=Andrii Liekariev
 email=elfpkck@gmail.com
 hasProcessingProvider=yes
 
-about=This plugin rotates polygons (and lines) to be parallel to the nearest reference segment; the reference can be a line or polygon layer (polygon boundary rings are treated as polylines). Two entry points are provided: a batch Processing algorithm that operates on whole layers, and an interactive map tool that lets you pick a reference line or polygon feature on the canvas and then click — or drag-rectangle — individual line/polygon features to rotate them in place. It is useful when working with streets and buildings. Before using the plugin, we strongly recommend checking your data for geometric errors. A full description can be found at https://elfpkck.github.io/polygons_parallel_to_line/
+about=This plugin rotates polygons (and lines) to be parallel to the nearest reference segment; the reference can be a line or polygon layer (polygon boundary rings are treated as polylines). Two entry points are provided: a batch Processing algorithm that operates on whole layers, and an interactive map tool that lets you pick a reference line or polygon feature on the canvas and then click — or drag-rectangle — individual line/polygon features to rotate them in place. It is useful when working with streets and buildings. Before using the plugin, we strongly recommend checking your data for geometric errors. A full description can be found at https://elfpkck.github.io/parallelizer/
 
-tracker=https://github.com/Elfpkck/polygons_parallel_to_line/issues
-repository=https://github.com/Elfpkck/polygons_parallel_to_line
+tracker=https://github.com/Elfpkck/parallelizer/issues
+repository=https://github.com/Elfpkck/parallelizer
 
 changelog=See CHANGELOG.md
 
 tags=polygon, line, vector, parallel, rotating, interactive, map tool
 
-homepage=https://elfpkck.github.io/polygons_parallel_to_line/
+homepage=https://elfpkck.github.io/parallelizer/
 category=Vector
 icon=icons/icon.png
 

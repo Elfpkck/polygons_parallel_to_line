@@ -1,5 +1,5 @@
-[![PR Validation](https://github.com/Elfpkck/polygons_parallel_to_line/actions/workflows/test.yaml/badge.svg?event=pull_request)](https://github.com/Elfpkck/polygons_parallel_to_line/actions/workflows/test.yaml)
-[![codecov](https://codecov.io/gh/Elfpkck/polygons_parallel_to_line/graph/badge.svg?token=QEHFI3XE08)](https://codecov.io/gh/Elfpkck/polygons_parallel_to_line)
+[![PR Validation](https://github.com/Elfpkck/parallelizer/actions/workflows/test.yaml/badge.svg?event=pull_request)](https://github.com/Elfpkck/parallelizer/actions/workflows/test.yaml)
+[![codecov](https://codecov.io/gh/Elfpkck/parallelizer/graph/badge.svg?token=QEHFI3XE08)](https://codecov.io/gh/Elfpkck/parallelizer)
 
 [![QGIS](https://qgis.github.io/qgis-uni-navigation/logo.svg)](https://qgis.org)
 
@@ -182,8 +182,8 @@ This project is licensed under the [GNU General Public License v2.0 or later](LI
 
 ## Support
 
-- 🐛 [Report Issues](https://github.com/Elfpkck/polygons_parallel_to_line/issues)
-- 💬 [Discussion Forum](https://github.com/Elfpkck/polygons_parallel_to_line/discussions)
+- 🐛 [Report Issues](https://github.com/Elfpkck/parallelizer/issues)
+- 💬 [Discussion Forum](https://github.com/Elfpkck/parallelizer/discussions)
 
 ---
 

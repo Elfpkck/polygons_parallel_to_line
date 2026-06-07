@@ -53,7 +53,7 @@ class Algorithm(QgsProcessingAlgorithm):
         return "Rotates polygons parallel to features in a reference layer (line or polygon)."
 
     def helpUrl(self) -> str:  # noqa: N802
-        return "https://elfpkck.github.io/polygons_parallel_to_line/"
+        return "https://elfpkck.github.io/parallelizer/"
 
     def initAlgorithm(self, config: dict | None = None) -> None:  # noqa: N802
         self.addParameter(
