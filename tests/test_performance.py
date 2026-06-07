@@ -65,7 +65,7 @@ def test_perf_smoke_grid_1024_polygons(qgis_processing, add_features):
 
     params = {
         "REFERENCE_LAYER": line_layer,
-        "POLYGON_LAYER": poly_layer,
+        "TARGET_LAYER": poly_layer,
         "LONGEST": False,
         "NO_MULTI": False,
         "DISTANCE": 0.0,

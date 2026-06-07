@@ -153,12 +153,12 @@ def test_main_functionality(
     line_layer = QgsVectorLayer("linestring", "temp_line", "memory")
     add_features(vector_layer=line_layer, wkt_geometries=lines)
 
-    poly_layer = QgsVectorLayer("polygon", "temp_poly", "memory")
-    add_features(vector_layer=poly_layer, wkt_geometries=polys)
+    target_layer = QgsVectorLayer("polygon", "temp_poly", "memory")
+    add_features(vector_layer=target_layer, wkt_geometries=polys)
 
     params = {
         "REFERENCE_LAYER": line_layer,
-        "POLYGON_LAYER": poly_layer,
+        "TARGET_LAYER": target_layer,
         "LONGEST": longest,
         "NO_MULTI": no_multi,
         "DISTANCE": distance,
@@ -182,9 +182,9 @@ def test_no_multi_skips_multipolygons_when_reference_layer_empty(qgis_processing
     # (empty) reference layer; previously the reference lookup ran first and would raise.
     line_layer = QgsVectorLayer("linestring", "temp_line", "memory")
 
-    poly_layer = QgsVectorLayer("polygon", "temp_poly", "memory")
+    target_layer = QgsVectorLayer("polygon", "temp_poly", "memory")
     add_features(
-        vector_layer=poly_layer,
+        vector_layer=target_layer,
         wkt_geometries=(
             "MultiPolygon (((0 0, 1 0, 1 1, 0 1, 0 0)))",
             "MultiPolygon (((10 10, 11 10, 11 11, 10 11, 10 10)))",
@@ -193,7 +193,7 @@ def test_no_multi_skips_multipolygons_when_reference_layer_empty(qgis_processing
 
     params = {
         "REFERENCE_LAYER": line_layer,
-        "POLYGON_LAYER": poly_layer,
+        "TARGET_LAYER": target_layer,
         "LONGEST": False,
         "NO_MULTI": True,
         "DISTANCE": 0.0,
@@ -226,11 +226,11 @@ def test_polygon_reference_matches_equivalent_line_reference(qgis_processing, ad
             "memory",
         )
         add_features(vector_layer=ref_layer, wkt_geometries=(reference_wkt,))
-        poly_layer = QgsVectorLayer("polygon", "tgt", "memory")
-        add_features(vector_layer=poly_layer, wkt_geometries=target_polygons)
+        target_layer = QgsVectorLayer("polygon", "tgt", "memory")
+        add_features(vector_layer=target_layer, wkt_geometries=target_polygons)
         params = {
             "REFERENCE_LAYER": ref_layer,
-            "POLYGON_LAYER": poly_layer,
+            "TARGET_LAYER": target_layer,
             "LONGEST": False,
             "NO_MULTI": False,
             "DISTANCE": 0.0,
@@ -245,6 +245,82 @@ def test_polygon_reference_matches_equivalent_line_reference(qgis_processing, ad
     line_outputs = _run(line_wkt)
     polygon_outputs = _run(poly_wkt)
     assert line_outputs == polygon_outputs
+
+
+def test_line_target_rotates_parallel_to_reference(qgis_processing, add_features):
+    # Line target tilted 45 degrees vs. a horizontal reference → output parallel (residual ~0).
+    ref_layer = QgsVectorLayer("linestring", "ref", "memory")
+    add_features(vector_layer=ref_layer, wkt_geometries=("LineString (0 0, 100 0)",))
+    target_layer = QgsVectorLayer("linestring", "tgt", "memory")
+    add_features(vector_layer=target_layer, wkt_geometries=("LineString (40 50, 60 70)",))
+
+    params = {
+        "REFERENCE_LAYER": ref_layer,
+        "TARGET_LAYER": target_layer,
+        "LONGEST": False,
+        "NO_MULTI": False,
+        "DISTANCE": 0.0,
+        "ANGLE": 89.9,
+        "OUTPUT": QgsProcessingOutputLayerDefinition("TEMPORARY_OUTPUT"),
+    }
+    context = QgsProcessingContext()
+    result = processing.run(algOrName=Algorithm(), parameters=params, context=context)
+    output_layer = context.getMapLayer(result[Algorithm.OUTPUT_LAYER])
+    features = list(output_layer.getFeatures())
+    assert [f[const.COLUMN_NAME] for f in features] == [True]
+
+    polyline = features[0].geometry().asPolyline()
+    dx = polyline[1].x() - polyline[0].x()
+    dy = polyline[1].y() - polyline[0].y()
+    assert abs(dy) < 1e-6  # horizontal == parallel to reference
+    assert abs(dx) > 0
+
+
+def test_no_multi_skips_multilines(qgis_processing, add_features):
+    ref_layer = QgsVectorLayer("linestring", "ref", "memory")
+    add_features(vector_layer=ref_layer, wkt_geometries=("LineString (0 0, 100 0)",))
+    target_layer = QgsVectorLayer("multilinestring", "tgt", "memory")
+    multi_wkt = "MultiLineString ((40 50, 60 70), (10 10, 20 20))"
+    add_features(vector_layer=target_layer, wkt_geometries=(multi_wkt,))
+
+    params = {
+        "REFERENCE_LAYER": ref_layer,
+        "TARGET_LAYER": target_layer,
+        "LONGEST": False,
+        "NO_MULTI": True,
+        "DISTANCE": 0.0,
+        "ANGLE": 89.9,
+        "OUTPUT": QgsProcessingOutputLayerDefinition("TEMPORARY_OUTPUT"),
+    }
+    context = QgsProcessingContext()
+    result = processing.run(algOrName=Algorithm(), parameters=params, context=context)
+    output_layer = context.getMapLayer(result[Algorithm.OUTPUT_LAYER])
+    features = list(output_layer.getFeatures())
+    assert [f[const.COLUMN_NAME] for f in features] == [False]
+    assert features[0].geometry().asWkt().lower().startswith("multilinestring")
+
+
+def test_line_target_exceeds_angle_threshold_unchanged(qgis_processing, add_features):
+    # Perpendicular line target with ANGLE=10 → delta > threshold → no rotation applied.
+    ref_layer = QgsVectorLayer("linestring", "ref", "memory")
+    add_features(vector_layer=ref_layer, wkt_geometries=("LineString (0 0, 100 0)",))
+    target_layer = QgsVectorLayer("linestring", "tgt", "memory")
+    add_features(vector_layer=target_layer, wkt_geometries=("LineString (40 20, 40 80)",))
+
+    params = {
+        "REFERENCE_LAYER": ref_layer,
+        "TARGET_LAYER": target_layer,
+        "LONGEST": False,
+        "NO_MULTI": False,
+        "DISTANCE": 0.0,
+        "ANGLE": 10.0,
+        "OUTPUT": QgsProcessingOutputLayerDefinition("TEMPORARY_OUTPUT"),
+    }
+    context = QgsProcessingContext()
+    result = processing.run(algOrName=Algorithm(), parameters=params, context=context)
+    output_layer = context.getMapLayer(result[Algorithm.OUTPUT_LAYER])
+    features = list(output_layer.getFeatures())
+    assert [f[const.COLUMN_NAME] for f in features] == [False]
 
 
 @pytest.fixture(scope="module")

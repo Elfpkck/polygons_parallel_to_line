@@ -18,7 +18,7 @@ def test_algorithm_initialization(algorithm_instance):
     assert algorithm_instance.group() == ""
     assert algorithm_instance.groupId() == ""
     assert algorithm_instance.shortHelpString() == (
-        "Rotates polygons parallel to features in a reference layer (line or polygon)."
+        "Rotates line or polygon features parallel to features in a reference layer (line or polygon)."
     )
     assert algorithm_instance.helpUrl() == "https://elfpkck.github.io/parallelizer/"
 
