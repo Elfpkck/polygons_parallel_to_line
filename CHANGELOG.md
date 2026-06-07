@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
+
+## [2.1.0] - 2026-06-07
 - Accept line layers as the rotation target in the Processing algorithm (the interactive map tool already supported both). **Breaking:** the Processing parameter `POLYGON_LAYER` has been renamed to `TARGET_LAYER` (saved models referencing the old key must be updated); user-facing labels switch from "Polygon layer" / "Skip multipolygons" to "Target layer" / "Skip multipart features"
 - Mark the plugin as QGIS 4 compatible (`qgisMaximumVersion=4.99`) and fully scope PyQt6-required Qt enums in the map tool and settings dialog so they work on QGIS 4 / Qt 6
 - Accept polygon layers as the rotation reference in both the Processing algorithm and the interactive map tool; polygon boundary rings are treated as polylines for closest-segment math. **Breaking:** the Processing parameter `LINE_LAYER` has been renamed to `REFERENCE_LAYER` (saved models referencing the old key must be updated). The map tool prefers a line under the click when both a line and polygon overlap.
