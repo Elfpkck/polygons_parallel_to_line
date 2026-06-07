@@ -15,7 +15,7 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QMetaType  # type: ignore[import-not-found]
 
 from .const import COLUMN_NAME
-from .pptl import Params, PolygonsParallelToLine
+from .pptl import Params, ParallelToReference
 
 if TYPE_CHECKING:
     from qgis.core import (
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 class Algorithm(QgsProcessingAlgorithm):
     OUTPUT_LAYER = "OUTPUT"
     REFERENCE_LAYER = "REFERENCE_LAYER"
-    POLYGON_LAYER = "POLYGON_LAYER"
+    TARGET_LAYER = "TARGET_LAYER"
     LONGEST = "LONGEST"
     NO_MULTI = "NO_MULTI"
     DISTANCE = "DISTANCE"
@@ -50,7 +50,7 @@ class Algorithm(QgsProcessingAlgorithm):
         return ""
 
     def shortHelpString(self) -> str:  # noqa: N802
-        return "Rotates polygons parallel to features in a reference layer (line or polygon)."
+        return "Rotates line or polygon features parallel to features in a reference layer (line or polygon)."
 
     def helpUrl(self) -> str:  # noqa: N802
         return "https://elfpkck.github.io/parallelizer/"
@@ -59,7 +59,7 @@ class Algorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSink(
                 self.OUTPUT_LAYER,
-                "Output layer with rotated polygons",
+                "Output layer with rotated features",
             )
         )
         self.addParameter(
@@ -70,12 +70,16 @@ class Algorithm(QgsProcessingAlgorithm):
             )
         )
         self.addParameter(
-            QgsProcessingParameterFeatureSource(self.POLYGON_LAYER, "Polygon layer", [QgsProcessing.TypeVectorPolygon])
+            QgsProcessingParameterFeatureSource(
+                self.TARGET_LAYER,
+                "Target layer",
+                [QgsProcessing.TypeVectorLine, QgsProcessing.TypeVectorPolygon],
+            )
         )
         self.addParameter(
             QgsProcessingParameterBoolean(self.LONGEST, "Rotate by the longest segment", defaultValue=False)
         )
-        self.addParameter(QgsProcessingParameterBoolean(self.NO_MULTI, "Skip multipolygons", defaultValue=False))
+        self.addParameter(QgsProcessingParameterBoolean(self.NO_MULTI, "Skip multipart features", defaultValue=False))
         self.addParameter(
             QgsProcessingParameterNumber(
                 self.DISTANCE,
@@ -105,19 +109,19 @@ class Algorithm(QgsProcessingAlgorithm):
     def processAlgorithm(  # noqa: N802
         self, parameters: dict[str, Any], context: QgsProcessingContext, feedback: QgsProcessingFeedback
     ) -> dict[str, str]:
-        polygon_layer = self.parameterAsSource(parameters, self.POLYGON_LAYER, context)
-        output_fields = self._create_output_fields(polygon_layer)
+        target_layer = self.parameterAsSource(parameters, self.TARGET_LAYER, context)
+        output_fields = self._create_output_fields(target_layer)
         sink, dest_id = self.parameterAsSink(
             parameters=parameters,
             name=self.OUTPUT_LAYER,
             context=context,
             fields=output_fields,
-            geometryType=polygon_layer.wkbType(),
-            crs=polygon_layer.sourceCrs(),
+            geometryType=target_layer.wkbType(),
+            crs=target_layer.sourceCrs(),
         )
         params = Params(
             reference_layer=self.parameterAsSource(parameters, self.REFERENCE_LAYER, context),
-            polygon_layer=polygon_layer,
+            target_layer=target_layer,
             by_longest=self.parameterAsBool(parameters, self.LONGEST, context),
             no_multi=self.parameterAsBool(parameters, self.NO_MULTI, context),
             distance=self.parameterAsDouble(parameters, self.DISTANCE, context),
@@ -125,5 +129,5 @@ class Algorithm(QgsProcessingAlgorithm):
             fields=output_fields,
             sink=sink,
         )
-        PolygonsParallelToLine(feedback, params).run()
+        ParallelToReference(feedback, params).run()
         return {self.OUTPUT_LAYER: dest_id}
